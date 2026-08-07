@@ -433,7 +433,16 @@ try{
     var _assign = _loc.assign.bind(_loc);
     _loc.assign = function(v){ if(blocked(v)) return; return _assign(v); };
   } catch(e){}
-  // Patch history navigation that sites use to break out.
+  // Trap window.open so framed sites can't grab the real parent/top window via
+  // window.open('', '_parent'/'_top') and then navigate it out of the iframe.
+  try {
+    var _open = window.open.bind(window);
+    window.open = function(u, t, f){
+      if (t === '_parent' || t === '_top' || t === '_blank' && blocked(u)) t = '_self';
+      if (blocked(u)) return null;
+      return _open(u, t, f);
+    };
+  } catch(e){}
   var _push = history.pushState, _replace = history.replaceState;
   function scrub(u){ if(u && String(u).indexOf('pornhub')!==-1) return; return u; }
   try { history.pushState = function(a,t,u){ return _push.call(history,a,t,scrub(u)); }; } catch(e){}
