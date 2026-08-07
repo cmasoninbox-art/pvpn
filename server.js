@@ -400,11 +400,11 @@ async function proxyHandler(req, res) {
         const u = norm.startsWith('//') ? 'https:' + norm : norm;
         return proxyWrap(u);
       });
-      // Inject frame-busting neutralizer. MUST run before any site script so the framed
-      // page can never observe that it is inside an iframe. We inject it at the very
-      // start of <head> (so it executes before Pornhub's inline scripts capture a real
-      // reference to window.top). It freezes top/parent/frameElement to self and traps
-      // any attempt to navigate the outer frame.
+      // Inject frame-busting neutralizer. MUST run before any site script. It freezes
+      // top/parent/frameElement to self and traps navigation at the PROTOTYPE level so
+      // that no matter how framed-page code obtains a Location (window.location,
+      // document.location, event.target.location, split-string URLs, etc.) it can never
+      // navigate to the real domain.
       const antiBust = `<script>(function(){
 try{
   var _self = window.self;
@@ -414,39 +414,49 @@ try{
   try{ window.top = _self; }catch(e){}
   try{ window.parent = _self; }catch(e){}
   try{ window.frameElement = null; }catch(e){}
-  // Trap any code that tries to bounce the outer frame to the real domain.
-  var _loc = window.location;
-  function guard(){ return _loc; }
+
+  // Block navigation to the real (proxied) site's domain, wherever it appears.
   function blocked(v){ return (v && String(v).indexOf('pornhub') !== -1); }
+
+  // Trap at the prototype so every Location object (window/document/anchor/etc.) is covered.
+  var LocProto = (window.location && Object.getPrototypeOf(window.location)) || window.Location.prototype;
   try {
-    Object.defineProperty(window,'location',{
-      get:guard,
-      set:function(v){ if(blocked(v)) return; try{_loc.href=v;}catch(e){} },
-      configurable:false
+    var _href = Object.getOwnPropertyDescriptor(LocProto,'href');
+    Object.defineProperty(LocProto,'href',{
+      get: function(){ return _href ? _href.get.call(this) : ''; },
+      set: function(v){ if(blocked(v)) return; try{ _href.set.call(this, v); }catch(e){} },
+      configurable: true
     });
   } catch(e){}
   try {
-    var _replace = _loc.replace.bind(_loc);
-    _loc.replace = function(v){ if(blocked(v)) return; return _replace(v); };
+    var _rep = LocProto.replace; LocProto.replace = function(v){ if(blocked(v)) return; return _rep.apply(this, arguments); };
   } catch(e){}
   try {
-    var _assign = _loc.assign.bind(_loc);
-    _loc.assign = function(v){ if(blocked(v)) return; return _assign(v); };
+    var _asn = LocProto.assign; LocProto.assign = function(v){ if(blocked(v)) return; return _asn.apply(this, arguments); };
   } catch(e){}
-  // Trap window.open so framed sites can't grab the real parent/top window via
-  // window.open('', '_parent'/'_top') and then navigate it out of the iframe.
+
+  // Also trap the window.location accessor itself (instance-level safety net).
+  var _loc = window.location;
+  try {
+    Object.defineProperty(window,'location',{ get:function(){return _loc;}, set:function(v){ if(blocked(v)) return; try{_loc.href=v;}catch(e){} }, configurable:true });
+  } catch(e){}
+
+  // Trap window.open so framed sites can't grab the real parent/top window.
   try {
     var _open = window.open.bind(window);
     window.open = function(u, t, f){
-      if (t === '_parent' || t === '_top' || t === '_blank' && blocked(u)) t = '_self';
+      if (t === '_parent' || t === '_top' || (t === '_blank' && blocked(u))) t = '_self';
       if (blocked(u)) return null;
       return _open(u, t, f);
     };
   } catch(e){}
-  var _push = history.pushState, _replace = history.replaceState;
-  function scrub(u){ if(u && String(u).indexOf('pornhub')!==-1) return; return u; }
+
+  // Scrub history navigation to the real domain.
+  var _push = history.pushState, _rpl = history.replaceState;
+  function scrub(u){ if(u && String(u).indexOf('pornhub') !== -1) return; return u; }
   try { history.pushState = function(a,t,u){ return _push.call(history,a,t,scrub(u)); }; } catch(e){}
-  try { history.replaceState = function(a,t,u){ return _replace.call(history,a,t,scrub(u)); }; } catch(e){}
+  try { history.replaceState = function(a,t,u){ return _rpl.call(history,a,t,scrub(u)); }; } catch(e){}
+
   document.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; });
 }catch(e){}
 })();</script>`;
