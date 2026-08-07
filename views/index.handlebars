@@ -579,40 +579,41 @@
         removeBrowserGate();
         const frame = document.getElementById('frame');
         if (frame) {
-          // Free: straight into Pornhub through the built-in proxy (VPN free lane).
           const proxyUrl = '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') + '&country=us&premium=0';
           frame.dataset.proxyUrl = proxyUrl;
+          frame.dataset.loading = '1';
           frame.src = proxyUrl;
         }
       });
     }
 
     // --- Frame-bust watchdog (backstop) ---
-    // Pornhub tries to navigate the iframe itself to the real domain, where its own
-    // X-Frame-Options shows "refused to connect" inside our frame. Our neutralizer
-    // traps most escapes at the JS level; this watchdog catches the rest: if the
-    // framed page ever becomes cross-origin, yank it back to the proxy within ~500ms.
-    // The visitor never sees the cross-origin error.
+    // Only fires when the frame is NOT loading (proxy fetch takes 2-3s on Render).
+    // During load the contentWindow check throws (not ready), which we'd mistake for
+    // cross-origin and reset — creating an infinite loop that shows a blank frame.
     const frameWatchdog = setInterval(() => {
       const frame = document.getElementById('frame');
       if (!frame || !frame.dataset.proxyUrl) return;
+      if (frame.dataset.loading === '1') return;  // skip during active fetch
       let sameOrigin = true;
       try { void frame.contentWindow.location.href; } catch (_) { sameOrigin = false; }
       if (!sameOrigin) {
         const back = frame.dataset.proxyUrl;
+        frame.dataset.loading = '1';
         frame.src = 'about:blank';
         frame.src = back + (back.indexOf('?') > -1 ? '&' : '?') + '_w=' + Date.now();
       }
-    }, 500);
+    }, 800);
 
-    // Track the last good proxy URL so the watchdog returns to where the user was.
+    // Track the last good proxy URL + clear loading flag on successful load.
     const frameEl = document.getElementById('frame');
     if (frameEl) {
       frameEl.addEventListener('load', () => {
+        frameEl.dataset.loading = '0';
         try {
           const loc = frameEl.contentWindow.location.href;
           if (loc && loc.indexOf('/proxy') > -1) frameEl.dataset.proxyUrl = loc;
-        } catch (_) { /* cross-origin escape — watchdog handles it */ }
+        } catch (_) { /* cross-origin — watchdog handles */ }
       });
     }
     if (gatePremiumBtn) {
