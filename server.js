@@ -311,6 +311,10 @@ async function proxyHandler(req, res) {
         // Point it at our proxy so relative sub-resources resolve through us (not the real domain).
         .replace(/<head([^>]*)>/i, `<head$1><base href="${proxyBase}" target="_self">`);
 
+      // Strip meta-X-Frame-Options and CSP from HTML (Pornhub injects via <meta> tags)
+      rewritten = rewritten.replace(/<meta\s+http-equiv=["']X-Frame-Options["'][^>]*>/gi, '');
+      rewritten = rewritten.replace(/<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '');
+
       // Inject media-enforcement: cap video resolution to the enforced quality,
       // force playback rate and subtitle mode on every <video>, even ones created later.
       const settings = getMediaSettings(req);
@@ -558,11 +562,10 @@ try{
       // Strip upstream X-Frame-Options and X-Content-Type-Options that block iframe embedding
       res.removeHeader('x-frame-options');
       res.removeHeader('x-content-type-options');
-      // CSP: navigate-to 'self' blocks ALL navigation (location=, form submit, etc.)
-      // to foreign origins — the definitive frame-bust defense. form-action + frame-src
-      // are defense-in-depth for older browsers. frame-ancestors prevents others framing us.
+      // CSP: form-action + frame-src block navigation to foreign origins.
+      // frame-ancestors prevents others framing us. Removed navigate-to (IE-only, unsupported).
       res.set('Content-Security-Policy',
-        "navigate-to 'self'; form-action 'self'; frame-src 'self'; frame-ancestors 'self'");
+        "form-action 'self'; frame-src 'self'; frame-ancestors 'self'");
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
@@ -769,6 +772,10 @@ const fullPageProxyHandler = async (req, res) => {
       body = body.replace(/(data-root=["'])[^"']*(["'])/gi, (mm, p1, p2) => {
         return p1 + (req.headers.host || 'localhost') + p2;
       });
+
+      // Strip meta-X-Frame-Options and CSP from HTML (Pornhub injects via <meta> tags)
+      body = body.replace(/<meta\s+http-equiv=["']X-Frame-Options["'][^>]*>/gi, '');
+      body = body.replace(/<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '');
 
       // ── Quality enforcement (resolution/speed/subtitles) ───────
       const settings = getMediaSettings(req);
