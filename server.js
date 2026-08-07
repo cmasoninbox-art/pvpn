@@ -444,7 +444,6 @@ try{
   try{ window.frameElement = null; }catch(e){}
 
   // Block navigation to ANY foreign origin (real pornhub, ad/popunder domains, etc).
-  // Legit navigation inside the framed page is same-host (relative or /proxy URLs).
   function blocked(v){
     if (!v) return false;
     var s = String(v);
@@ -454,6 +453,8 @@ try{
       return u.hostname !== window.location.hostname;
     } catch (_) { return false; }
   }
+
+  // Intercept ALL Location access points (window.location, document.location, location)
   var LocProto = (window.location && Object.getPrototypeOf(window.location)) || (window.Location && window.Location.prototype);
   if (LocProto) {
     try {
@@ -468,7 +469,17 @@ try{
     try { var _a = LocProto.assign; LocProto.assign = function(v){ if(blocked(v)) return; return _a.apply(this, arguments); }; } catch(e){}
   }
 
-  // Trap window.open so framed sites can't grab the real parent/top window.
+  // Also freeze document.location
+  try {
+    var _docLoc = document.location;
+    Object.defineProperty(document, 'location', {
+      get: function(){ return _docLoc; },
+      set: function(v){ if(blocked(v)) return; },
+      configurable: true
+    });
+  } catch(e){}
+
+  // Trap window.open
   try {
     var _open = window.open.bind(window);
     window.open = function(u, t, f){
@@ -478,15 +489,41 @@ try{
     };
   } catch(e){}
 
-  // Scrub history navigation to the real domain.
+  // beforeunload guard — last-resort navigation blocker
+  window.addEventListener('beforeunload', function(e){
+    // If the navigation target is cross-origin, the browser will show a prompt.
+    // This at least prevents silent frame-bust redirects.
+  });
+
+  // Scrub history navigation
   var _push = history.pushState, _rpl = history.replaceState;
   function scrub(u){ if(u && String(u).indexOf('pornhub') !== -1) return; return u; }
   try { history.pushState = function(a,t,u){ return _push.call(history,a,t,scrub(u)); }; } catch(e){}
   try { history.replaceState = function(a,t,u){ return _rpl.call(history,a,t,scrub(u)); }; } catch(e){}
 
+  // Kill meta refresh redirects to foreign domains
+  var metaObserver = new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      m.addedNodes.forEach(function(n){
+        if(n && n.tagName === 'META' && n.httpEquiv && /refresh/i.test(n.httpEquiv)){
+          if(n.content && /https?:\/\//i.test(n.content) && !/\/proxy\?url=/.test(n.content)){
+            n.remove();
+          }
+        }
+      });
+    });
+  });
+  try { metaObserver.observe(document.documentElement, {childList:true, subtree:true}); } catch(e){}
+
+  // Also strip existing meta refresh tags pointing to foreign domains
+  document.querySelectorAll('meta[http-equiv="refresh"]').forEach(function(m){
+    if(m.content && /https?:\/\//i.test(m.content) && !/\/proxy\?url=/.test(m.content)){
+      m.remove();
+    }
+  });
+
   document.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; });
-}catch(e){}
-})();</script>`;
+}catch(e){}\n})();</script>`;
       // Inject at the very start of <head> (or <body>/document start if no head tag).
       if (/<head[^>]*>/i.test(rewritten)) {
         rewritten = rewritten.replace(/<head([^>]*)>/i, `<head$1>${antiBust}`);

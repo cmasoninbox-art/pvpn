@@ -577,9 +577,13 @@
       gateFreeBtn.addEventListener('click', () => {
         try { localStorage.setItem('freeAccess', '1'); } catch (_) {}
         removeBrowserGate();
-        // Full-page proxy (hide.me style) — no iframe, no frame-bust issues.
-        // Pornhub and similar sites can't break out because there's no frame.
-        window.location.href = '/go?url=' + encodeURIComponent('https://www.pornhub.com');
+        const frame = document.getElementById('frame');
+        if (frame) {
+          const proxyUrl = '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') + '&country=us&premium=0';
+          frame.dataset.proxyUrl = proxyUrl;
+          frame.dataset.loading = '1';
+          frame.src = proxyUrl;
+        }
       });
     }
 
