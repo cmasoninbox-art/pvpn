@@ -1,4 +1,4 @@
-# Tor state file last generated on 2026-08-07 01:51:03 local time
+# Tor state file last generated on 2026-08-07 22:02:38 local time
 # Other times below are in UTC
 # You *do not* need to edit this file.
 
@@ -352,7 +352,7 @@ Guard in=default rsa_id=A094BB63B8EE22AA5CD23F555EB172B6893A2AB6 nickname=AquaFr
 Guard in=default rsa_id=86FD3E9304EDE0BBE0EEF6515FB83F62D45168DB nickname=NTH78R1 sampled_on=2026-08-02T09:36:07 sampled_idx=57 sampled_by=0.4.9.6 listed=1
 Guard in=default rsa_id=F347D140E38884CF46C68E21D07E6C6F10BB35F9 nickname=LysatorRelay1 sampled_on=2026-07-30T13:17:39 sampled_idx=58 sampled_by=0.4.9.6 listed=1
 Guard in=default rsa_id=F4FBFB2773FAB87E3708BEFA0B1BEE64FD52E579 nickname=NoLogRelay sampled_on=2026-08-05T21:20:32 sampled_idx=59 sampled_by=0.4.9.6 listed=1
-LastWritten 2026-08-06 15:51:03
-MinutesSinceUserActivity 870
+LastWritten 2026-08-07 12:02:38
+MinutesSinceUserActivity 1137
 TorVersion Tor 0.4.9.6
 TotalBuildTimes 867
