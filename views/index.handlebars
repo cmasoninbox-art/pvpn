@@ -661,6 +661,10 @@
       dot.className = 'dot';
       status.textContent = 'Disconnected';
     }
+    function setDirectMode() {
+      dot.className = 'dot direct';
+      status.textContent = 'Direct egress';
+    }
 
     menuBtn.addEventListener('click', () => {
       menuDropdown.classList.toggle('open');
@@ -923,20 +927,17 @@
       const premium = localStorage.getItem('premium') === '1';
       const countrySel = document.getElementById('country');
       const vpnSel = document.getElementById('vpnMode');
+      const vpnNote = document.getElementById('vpnNote');
       if (vpnSel) {
-        vpnSel.value = 'builtin';
+        vpnSel.value = 'direct';
         vpnSel.disabled = !premium;
       }
       if (countrySel) {
-        if (!premium) {
-          countrySel.value = 'us';
-          countrySel.disabled = true;
-        } else {
-          countrySel.disabled = false;
-        }
+        countrySel.value = 'us';
+        countrySel.disabled = true;
       }
-      const vpnNote = document.getElementById('vpnNote');
-      if (vpnNote) vpnNote.textContent = premium ? '' : 'Free: slow server only — upgrade for faster countries';
+      if (vpnNote) vpnNote.textContent = premium ? 'Direct egress — no VPN/Tor' : 'Free: direct egress — upgrade for VPN';
+      setDirectMode();
     }
 
     // Non-premium tease screen: dark translucent overlay covering the browser,

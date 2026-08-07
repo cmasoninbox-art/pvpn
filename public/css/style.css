@@ -286,6 +286,15 @@ button:hover { background: #e56d00; box-shadow: 0 0 12px rgba(255,122,0,0.25); }
   background: #ff7a00;
   box-shadow: 0 0 0 3px rgba(255,122,0,0.3);
 }
+.dot.direct {
+  background: #ffd000;
+  box-shadow: 0 0 0 3px rgba(255,208,0,0.35);
+  animation: directPulse 1.6s ease-in-out infinite alternate;
+}
+@keyframes directPulse {
+  from { box-shadow: 0 0 0 3px rgba(255,208,0,0.2); }
+  to   { box-shadow: 0 0 0 6px rgba(255,208,0,0.45); }
+}
 
 .main {
   display: grid;
