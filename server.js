@@ -577,9 +577,10 @@ try{
     // Strip upstream X-Frame-Options for all proxied responses
     res.removeHeader('x-frame-options');
     res.removeHeader('x-content-type-options');
-    // CSP: navigate-to 'self' blocks ALL navigation to foreign origins.
+    // CSP: form-action + frame-src block navigation to foreign origins.
+    // removed navigate-to (IE-only, unsupported)
     res.set('Content-Security-Policy',
-      "navigate-to 'self'; form-action 'self'; frame-src 'self'; frame-ancestors 'self'");
+      "form-action 'self'; frame-src 'self'; frame-ancestors 'self'");
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
