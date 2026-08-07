@@ -1,4 +1,4 @@
-# Tor state file last generated on 2026-08-08 01:00:41 local time
+# Tor state file last generated on 2026-08-08 03:59:54 local time
 # Other times below are in UTC
 # You *do not* need to edit this file.
 
@@ -39,7 +39,7 @@ CircuitBuildTimeBin 1245 4
 CircuitBuildTimeBin 1255 7
 CircuitBuildTimeBin 1265 3
 CircuitBuildTimeBin 1275 2
-CircuitBuildTimeBin 1285 3
+CircuitBuildTimeBin 1285 4
 CircuitBuildTimeBin 1295 5
 CircuitBuildTimeBin 1305 3
 CircuitBuildTimeBin 1315 1
@@ -313,8 +313,8 @@ CircuitBuildTimeBin 58585 1
 CircuitBuildTimeBin 59035 1
 CircuitBuildAbandonedCount 168
 Dormant 0
-Guard in=default rsa_id=BAACB3283E8BE2AF98324E8DC7C4A0DD4C480140 nickname=breal sampled_on=2026-08-02T16:00:05 sampled_idx=0 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-07-29T19:49:52 confirmed_idx=0 pb_circ_attempts=271.000000 pb_circ_successes=264.000000 pb_successful_circuits_closed=260.000000 pb_collapsed_circuits=4.000000 pb_timeouts=19.000000
-Guard in=default rsa_id=5E09E53269D53680A2BD5CBFF28902A81963887A nickname=prsv sampled_on=2026-08-03T19:11:38 sampled_idx=1 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-07-28T06:27:39 confirmed_idx=1 pb_circ_attempts=294.000000 pb_circ_successes=288.000000 pb_successful_circuits_closed=214.000000 pb_collapsed_circuits=74.000000 pb_timeouts=8.000000
+Guard in=default rsa_id=BAACB3283E8BE2AF98324E8DC7C4A0DD4C480140 nickname=breal sampled_on=2026-08-02T16:00:05 sampled_idx=0 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-07-29T19:49:52 confirmed_idx=0 pb_circ_attempts=272.000000 pb_circ_successes=265.000000 pb_successful_circuits_closed=261.000000 pb_collapsed_circuits=4.000000 pb_timeouts=19.000000
+Guard in=default rsa_id=5E09E53269D53680A2BD5CBFF28902A81963887A nickname=prsv sampled_on=2026-08-03T19:11:38 sampled_idx=1 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-07-28T06:27:39 confirmed_idx=1 pb_circ_attempts=294.000000 pb_circ_successes=288.000000 pb_successful_circuits_closed=213.000000 pb_collapsed_circuits=75.000000 pb_timeouts=8.000000
 Guard in=default rsa_id=86D925BACCA2153E325E4CBED1D3514EB2CD5ECF nickname=forest38 sampled_on=2026-08-04T05:03:40 sampled_idx=2 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-08-02T11:05:01 confirmed_idx=2 pb_circ_attempts=5.000000 pb_circ_successes=5.000000 pb_successful_circuits_closed=5.000000
 Guard in=default rsa_id=87EE73729F82D64F7AD79B48A7AF4F3AA40BA4E9 nickname=puerierstab sampled_on=2026-07-30T18:06:24 sampled_idx=3 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-07-31T18:18:50 confirmed_idx=3
 Guard in=default rsa_id=0228731E36C96325F11BB9714286901B0990EE30 nickname=Weltbank sampled_on=2026-07-31T18:03:31 sampled_idx=4 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-07-26T08:45:08 confirmed_idx=5
@@ -373,7 +373,7 @@ Guard in=default rsa_id=5CE677B0C278DA9239A1584C1CE0F06B121B7FC3 nickname=shatta
 Guard in=default rsa_id=98B208DAA54057221D957396F530954545A2F4C1 nickname=finc sampled_on=2026-08-01T19:32:53 sampled_idx=57 sampled_by=0.4.9.6 listed=1
 Guard in=default rsa_id=5B99771EB24027E47C04A6260492720C35CA1EDA nickname=ADoorToTor sampled_on=2026-07-27T05:44:47 sampled_idx=58 sampled_by=0.4.9.6 listed=1
 Guard in=default rsa_id=6DA6D5747A1BDD4F9CFCB26F9572B035BA78AD14 nickname=SaltyFox sampled_on=2026-08-04T06:36:30 sampled_idx=59 sampled_by=0.4.9.6 listed=1
-LastWritten 2026-08-07 15:00:41
-MinutesSinceUserActivity 1281
+LastWritten 2026-08-07 17:59:54
+MinutesSinceUserActivity 1289
 TorVersion Tor 0.4.9.6
-TotalBuildTimes 840
+TotalBuildTimes 841

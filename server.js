@@ -394,10 +394,42 @@ async function proxyHandler(req, res) {
         const u = norm.startsWith('//') ? 'https:' + norm : norm;
         return proxyWrap(u);
       });
-      // Inject frame-busting neutralizer BEFORE any existing scripts so framed sites
-      // can't break out of the iframe by checking top/parent/frameElement.
-      const antiBust = `<script>(function(){try{window.top=window.self;window.frameElement=null;Object.defineProperty(window,'top',{get:function(){return window.self}});Object.defineProperty(window,'parent',{get:function(){return window.self}});}catch(e){}})();</script>`;
-      rewritten = rewritten.replace('</head>', antiBust + '</head>') || rewritten.replace('<body>', '<body>' + antiBust) || rewritten + antiBust;
+      // Inject frame-busting neutralizer. MUST run before any site script so the framed
+      // page can never observe that it is inside an iframe. We inject it at the very
+      // start of <head> (so it executes before Pornhub's inline scripts capture a real
+      // reference to window.top). It freezes top/parent/frameElement to self and traps
+      // any attempt to navigate the outer frame.
+      const antiBust = `<script>(function(){
+try{
+  var _self = window.self;
+  Object.defineProperty(window,'top',{get:function(){return _self;},configurable:false});
+  Object.defineProperty(window,'parent',{get:function(){return _self;},configurable:false});
+  Object.defineProperty(window,'frameElement',{get:function(){return null;},configurable:false});
+  try{ window.top = _self; }catch(e){}
+  try{ window.parent = _self; }catch(e){}
+  try{ window.frameElement = null; }catch(e){}
+  // Trap any code that tries to bounce the outer frame to the real domain.
+  var _loc = window.location;
+  function guard(){ return _loc; }
+  try {
+    Object.defineProperty(window,'location',{get:guard,set:function(v){ if(String(v).indexOf('pornhub')!==-1) return; try{_loc.href=v;}catch(e){} },configurable:false});
+  } catch(e){}
+  // Patch history navigation that sites use to break out.
+  var _push = history.pushState, _replace = history.replaceState;
+  function scrub(u){ if(u && String(u).indexOf('pornhub')!==-1) return; return u; }
+  try { history.pushState = function(a,t,u){ return _push.call(history,a,t,scrub(u)); }; } catch(e){}
+  try { history.replaceState = function(a,t,u){ return _replace.call(history,a,t,scrub(u)); }; } catch(e){}
+  document.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; });
+}catch(e){}
+})();</script>`;
+      // Inject at the very start of <head> (or <body>/document start if no head tag).
+      if (/<head[^>]*>/i.test(rewritten)) {
+        rewritten = rewritten.replace(/<head([^>]*)>/i, `<head$1>${antiBust}`);
+      } else if (/<body[^>]*>/i.test(rewritten)) {
+        rewritten = rewritten.replace(/<body([^>]*)>/i, `<body$1>${antiBust}`);
+      } else {
+        rewritten = antiBust + rewritten;
+      }
       // CSP: everything flows through our origin so framed sites can't load the real domain
       // (which would serve X-Frame-Options: DENY and break framing). Sandbox already allows
       // scripts/forms/same-origin/popups.
