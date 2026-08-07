@@ -1,10 +1,18 @@
-# Tor state file last generated on 2026-08-07 20:41:19 local time
+# Tor state file last generated on 2026-08-07 20:43:45 local time
 # Other times below are in UTC
 # You *do not* need to edit this file.
 
+CircuitBuildTimeBin 1075 1
+CircuitBuildTimeBin 1135 1
 CircuitBuildTimeBin 1155 1
+CircuitBuildTimeBin 1285 1
+CircuitBuildTimeBin 1305 1
 CircuitBuildTimeBin 1315 1
+CircuitBuildTimeBin 1345 1
+CircuitBuildTimeBin 1495 2
 CircuitBuildTimeBin 1515 1
+CircuitBuildTimeBin 1605 2
+CircuitBuildTimeBin 1665 2
 CircuitBuildTimeBin 1685 1
 CircuitBuildTimeBin 1705 1
 CircuitBuildTimeBin 1715 1
@@ -14,14 +22,17 @@ CircuitBuildTimeBin 1815 1
 CircuitBuildTimeBin 1825 1
 CircuitBuildTimeBin 1845 1
 CircuitBuildTimeBin 1975 1
+CircuitBuildTimeBin 1995 1
 CircuitBuildTimeBin 2005 1
 CircuitBuildTimeBin 2125 1
 CircuitBuildTimeBin 2205 1
 CircuitBuildTimeBin 2265 1
+CircuitBuildTimeBin 2305 1
 CircuitBuildTimeBin 2395 1
 CircuitBuildTimeBin 2405 1
 CircuitBuildTimeBin 2485 1
 CircuitBuildTimeBin 2505 1
+CircuitBuildTimeBin 2635 1
 CircuitBuildTimeBin 2665 1
 CircuitBuildTimeBin 2855 1
 CircuitBuildTimeBin 2905 1
@@ -49,8 +60,8 @@ CircuitBuildTimeBin 31335 1
 CircuitBuildTimeBin 40795 1
 CircuitBuildTimeBin 50845 1
 Dormant 0
-Guard in=default rsa_id=860F4B99450C6757C12E4FF7E68072D390FDE552 nickname=metroboomin sampled_on=2026-08-03T23:36:35 sampled_idx=0 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-07-31T10:31:38 confirmed_idx=0 pb_use_attempts=1.000000 pb_use_successes=1.000000 pb_circ_attempts=20.000000 pb_circ_successes=19.000000 pb_successful_circuits_closed=19.000000 pb_timeouts=1.000000
-Guard in=default rsa_id=DA8C9D509989F8175EC3E487788815F7BAD2DAEC nickname=confidential sampled_on=2026-07-25T11:39:01 sampled_idx=1 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-07-30T18:21:24 confirmed_idx=1 pb_circ_attempts=18.000000 pb_circ_successes=18.000000 pb_successful_circuits_closed=18.000000 pb_timeouts=3.000000
+Guard in=default rsa_id=860F4B99450C6757C12E4FF7E68072D390FDE552 nickname=metroboomin sampled_on=2026-08-03T23:36:35 sampled_idx=0 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-07-31T10:31:38 confirmed_idx=0 pb_use_attempts=1.000000 pb_use_successes=1.000000 pb_circ_attempts=24.000000 pb_circ_successes=23.000000 pb_successful_circuits_closed=23.000000 pb_timeouts=1.000000
+Guard in=default rsa_id=DA8C9D509989F8175EC3E487788815F7BAD2DAEC nickname=confidential sampled_on=2026-07-25T11:39:01 sampled_idx=1 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-07-30T18:21:24 confirmed_idx=1 pb_circ_attempts=22.000000 pb_circ_successes=22.000000 pb_successful_circuits_closed=22.000000 pb_timeouts=3.000000
 Guard in=default rsa_id=54AC35F4E412EBEF8D5A1074A6849D54671526DC nickname=HjelmEnterprises03 sampled_on=2026-08-02T00:10:39 sampled_idx=2 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-08-05T17:18:48 confirmed_idx=2 pb_circ_attempts=55.000000 pb_circ_successes=53.000000 pb_successful_circuits_closed=52.000000 pb_collapsed_circuits=1.000000 pb_timeouts=5.000000
 Guard in=default rsa_id=9D5A7A81BC6194555CE751F75FB196E4A3982CC5 nickname=F3Netze sampled_on=2026-08-04T20:03:56 sampled_idx=3 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-08-03T20:44:29 confirmed_idx=3
 Guard in=default rsa_id=C7735FB0369094ED6351130E81F3DFED25D67F8B nickname=tembi sampled_on=2026-08-02T17:03:23 sampled_idx=4 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-07-25T20:37:19 confirmed_idx=4 pb_circ_attempts=2.000000 pb_circ_successes=2.000000 pb_successful_circuits_closed=1.000000 pb_collapsed_circuits=1.000000 pb_timeouts=1.000000
@@ -73,7 +84,7 @@ Guard in=default rsa_id=AEDF38806F98CF5061BBF5DF1B734FEE16A5AF00 nickname=mirage
 Guard in=default rsa_id=BD812CDAE1562823A2241A8C3411A0EB38E49644 nickname=TORKeFFORG23 sampled_on=2026-07-29T15:27:21 sampled_idx=21 sampled_by=0.4.9.6 listed=1
 Guard in=default rsa_id=959779FD7167FD412B3B098457B04433F572AAEB nickname=prsv sampled_on=2026-08-05T02:17:06 sampled_idx=22 sampled_by=0.4.9.6 listed=1
 Guard in=default rsa_id=7C616D44E64880581541A3C2F686ACE6400CB5D3 nickname=prsv sampled_on=2026-08-04T00:12:34 sampled_idx=23 sampled_by=0.4.9.6 listed=1
-LastWritten 2026-08-07 10:41:19
+LastWritten 2026-08-07 10:43:45
 MinutesSinceUserActivity 17
 TorVersion Tor 0.4.9.6
-TotalBuildTimes 46
+TotalBuildTimes 60
