@@ -664,6 +664,12 @@ const fullPageProxyHandler = async (req, res) => {
 
     const contentType = response.headers.get('content-type') || 'text/html';
 
+    // Strip upstream headers that block iframe embedding
+    response.headers.delete('x-frame-options');
+    response.headers.delete('content-security-policy');
+    response.headers.delete('x-content-security-policy');
+    response.headers.delete('x-webkit-csp');
+
     // Forward Set-Cookie from upstream, scoped to our /go path
     // Forward Set-Cookie from upstream — rewrite domain to OUR host so the
     // browser doesn't try to connect to the real domain (which causes
