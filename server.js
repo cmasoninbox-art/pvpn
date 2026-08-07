@@ -220,10 +220,17 @@ async function proxyHandler(req, res) {
       const lp = APP_CONFIG.localProxy.trim();
       agent = (/^https?:/i.test(lp)) ? new HttpsProxyAgent(lp) : new SocksProxyAgent(lp);
     } else if (useTor) {
-      if (isPremium && country && country !== 'us') {
-        agent = vpnMgr.agentForCountry(country);   // premium: chosen geo exit
-      } else {
-        agent = vpnMgr.getFreeUs(); // free + premium-US: free VPN permanently pinned to America
+      try {
+        if (isPremium && country && country !== 'us') {
+          agent = vpnMgr.agentForCountry(country);   // premium: chosen geo exit
+        } else {
+          agent = vpnMgr.getFreeUs(); // free + premium-US: free VPN permanently pinned to America
+        }
+      } catch (torErr) {
+        // Tor binary not available (e.g. Render free container) — degrade gracefully
+        // to the server's real egress instead of erroring out.
+        console.warn('[proxy] Tor unavailable, falling back to direct egress:', torErr.message);
+        agent = undefined;
       }
     } else {
       // vpnMode 'direct' (or unknown): use the server's real egress (no proxy).
@@ -1021,6 +1028,14 @@ function saveConfig() {
 }
 
 loadConfig();
+
+// If Tor is not installed (e.g. Render free container), never select builtin mode —
+// silently downgrade to direct egress so the proxy never 500s on a missing binary.
+if (APP_CONFIG.vpnMode === 'builtin' && !vpnMgr.checkTorAvailable()) {
+  console.warn('[config] Tor binary missing — forcing vpnMode=direct instead of builtin');
+  APP_CONFIG.vpnMode = 'direct';
+  saveConfig();
+}
 
 app.get('/admin/config', (req, res) => res.json(APP_CONFIG));
 
