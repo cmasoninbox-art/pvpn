@@ -291,6 +291,12 @@ async function proxyHandler(req, res) {
           }
           return match;
         })
+        // Strip meta-refresh redirects that point at the real (un-proxied) domain so the
+        // framed page can't bounce itself out of the iframe via HTML refresh.
+        .replace(/<meta[^>]+http-equiv\s*=\s*["']?refresh["']?[^>]*>/gi, (m) => {
+          if (/https?:\/\//i.test(m) && !m.includes('/proxy?url=')) return ''; // drop external refreshes
+          return m;
+        })
         // Inject <base> LAST so the href/src rewrites above don't double-process it.
         // Point it at our proxy so relative sub-resources resolve through us (not the real domain).
         .replace(/<head([^>]*)>/i, `<head$1><base href="${proxyBase}" target="_self">`);
@@ -411,8 +417,21 @@ try{
   // Trap any code that tries to bounce the outer frame to the real domain.
   var _loc = window.location;
   function guard(){ return _loc; }
+  function blocked(v){ return (v && String(v).indexOf('pornhub') !== -1); }
   try {
-    Object.defineProperty(window,'location',{get:guard,set:function(v){ if(String(v).indexOf('pornhub')!==-1) return; try{_loc.href=v;}catch(e){} },configurable:false});
+    Object.defineProperty(window,'location',{
+      get:guard,
+      set:function(v){ if(blocked(v)) return; try{_loc.href=v;}catch(e){} },
+      configurable:false
+    });
+  } catch(e){}
+  try {
+    var _replace = _loc.replace.bind(_loc);
+    _loc.replace = function(v){ if(blocked(v)) return; return _replace(v); };
+  } catch(e){}
+  try {
+    var _assign = _loc.assign.bind(_loc);
+    _loc.assign = function(v){ if(blocked(v)) return; return _assign(v); };
   } catch(e){}
   // Patch history navigation that sites use to break out.
   var _push = history.pushState, _replace = history.replaceState;
