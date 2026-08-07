@@ -503,6 +503,8 @@ try{
       // Strip upstream X-Frame-Options and X-Content-Type-Options that block iframe embedding
       res.removeHeader('x-frame-options');
       res.removeHeader('x-content-type-options');
+      res.set('Content-Security-Policy',
+        "form-action 'self'; frame-src 'self'; frame-ancestors 'self'");
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
@@ -514,6 +516,10 @@ try{
     // Strip upstream X-Frame-Options for all proxied responses
     res.removeHeader('x-frame-options');
     res.removeHeader('x-content-type-options');
+    // CSP: block foreign-origin form submissions (the iframe self-navigation escape)
+    // and foreign sub-frames. Location traps + static rewrites handle JS navigation.
+    res.set('Content-Security-Policy',
+      "form-action 'self'; frame-src 'self'; frame-ancestors 'self'");
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
