@@ -536,8 +536,27 @@ try{
     }
   });
 
+  // Block CSP and X-Frame-Options meta tags (Pornhub injects them to frame-bust)
+  var cspObserver = new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      m.addedNodes.forEach(function(n){
+        if(n && n.tagName === 'META' && n.httpEquiv){
+          var hv = n.httpEquiv.toLowerCase();
+          if(hv === 'content-security-policy' || hv === 'x-frame-options' || hv === 'x-content-security-policy' || hv === 'x-webkit-csp'){
+            n.remove();
+          }
+        }
+      });
+    });
+  });
+  try { cspObserver.observe(document.documentElement, {childList:true, subtree:true}); } catch(e){}
+
+  // Also remove any existing CSP/XFO meta tags added by page
+  document.querySelectorAll('meta[http-equiv="Content-Security-Policy"], meta[http-equiv="X-Frame-Options"], meta[http-equiv="X-Content-Security-Policy"], meta[http-equiv="X-WebKit-CSP"]').forEach(function(m){ m.remove(); });
+
   document.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; });
-}catch(e){}\n})();</script>`;
+}catch(e){}
+})();</script>`;
       // Inject at the very start of <head> (or <body>/document start if no head tag).
       if (/<head[^>]*>/i.test(rewritten)) {
         rewritten = rewritten.replace(/<head([^>]*)>/i, `<head$1>${antiBust}`);
@@ -864,6 +883,24 @@ try{
   try{var _open=window.open.bind(window);window.open=function(u,t,f){if(t==='_parent'||t==='_top'||(t==='_blank'&&blocked(u)))t='_self';if(blocked(u))return null;return _open(u,t,f);};}catch(e){}
   var _push=history.pushState,_rpl=history.replaceState;function scrub(u){if(u&&String(u).indexOf('pornhub')!==-1)return;return u;}try{history.pushState=function(a,t,u){return _push.call(history,a,t,scrub(u));};}catch(e){}try{history.replaceState=function(a,t,u){return _rpl.call(history,a,t,scrub(u));};}catch(e){}
   var mo=new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n&&n.tagName==='META'&&n.httpEquiv&&/refresh/i.test(n.httpEquiv)){if(n.content&&/https?:\\/\\//i.test(n.content)&&!/\\/go\\?url=/.test(n.content)){n.remove();}}});});});try{mo.observe(document.documentElement,{childList:true,subtree:true});}catch(e){}
+  // Block CSP and X-Frame-Options meta tags (Pornhub injects them to frame-bust)
+  var cspObserver = new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      m.addedNodes.forEach(function(n){
+        if(n && n.tagName === 'META' && n.httpEquiv){
+          var hv = n.httpEquiv.toLowerCase();
+          if(hv === 'content-security-policy' || hv === 'x-frame-options' || hv === 'x-content-security-policy' || hv === 'x-webkit-csp'){
+            n.remove();
+          }
+        }
+      });
+    });
+  });
+  try { cspObserver.observe(document.documentElement, {childList:true, subtree:true}); } catch(e){}
+
+  // Also remove any existing CSP/XFO meta tags added by page
+  document.querySelectorAll('meta[http-equiv="Content-Security-Policy"], meta[http-equiv="X-Frame-Options"], meta[http-equiv="X-Content-Security-Policy"], meta[http-equiv="X-WebKit-CSP"]').forEach(function(m){ m.remove(); });
+
   document.querySelectorAll('meta[http-equiv="refresh"]').forEach(function(m){if(m.content&&/https?:\\/\\//i.test(m.content)&&!/\\/go\\?url=/.test(m.content)){m.remove();}});
 
   // ── Intercept ALL dynamic navigation paths ──────────────────────
