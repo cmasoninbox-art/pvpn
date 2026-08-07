@@ -432,28 +432,46 @@ try{
   // Block navigation to the real (proxied) site's domain, wherever it appears.
   function blocked(v){ return (v && String(v).indexOf('pornhub') !== -1); }
 
-  // Trap at the prototype so every Location object (window/document/anchor/etc.) is covered.
-  var LocProto = (window.location && Object.getPrototypeOf(window.location)) || window.Location.prototype;
+  // Wrap window.location in a Proxy so EVERY access/assignment (incl. bracket notation,
+  // destructuring, assign/replace/href) is intercepted. This is the most comprehensive
+  // defense against obfuscated frame-bust code.
   try {
+    var _loc = window.location;
+    var _locProxy = new Proxy(_loc, {
+      get: function(target, prop){
+        if (prop === 'href' || prop === 'replace' || prop === 'assign' || prop === 'toString') {
+          return function(v){ if (blocked(v)) return (prop==='toString'? String(_loc): undefined); try { return target[prop].apply(target, arguments); } catch(e){} };
+        }
+        try { return target[prop]; } catch(e){ return undefined; }
+      },
+      set: function(target, prop, val){
+        if (prop === 'href' || prop === 'pathname' || prop === 'search' || prop === 'hash' || prop === 'host' || prop === 'hostname' || prop === 'protocol' || prop === 'port') {
+          if (blocked(val)) return true; // swallow navigation to real domain
+          try { target[prop] = val; } catch(e){}
+          return true;
+        }
+        try { target[prop] = val; } catch(e){}
+        return true;
+      }
+    });
+    Object.defineProperty(window, 'location', { get: function(){ return _locProxy; }, configurable: true });
+  } catch(e){}
+
+  // Also trap the Location prototype href/replace/assign as a safety net.
+  try {
+    var LocProto = (window.location && Object.getPrototypeOf(window.location)) || window.Location.prototype;
     var _href = Object.getOwnPropertyDescriptor(LocProto,'href');
     Object.defineProperty(LocProto,'href',{
       get: function(){ return _href ? _href.get.call(this) : ''; },
       set: function(v){ if(blocked(v)) return; try{ _href.set.call(this, v); }catch(e){} },
       configurable: true
     });
-  } catch(e){}
-  try {
     var _rep = LocProto.replace; LocProto.replace = function(v){ if(blocked(v)) return; return _rep.apply(this, arguments); };
-  } catch(e){}
-  try {
     var _asn = LocProto.assign; LocProto.assign = function(v){ if(blocked(v)) return; return _asn.apply(this, arguments); };
   } catch(e){}
 
-  // Also trap the window.location accessor itself (instance-level safety net).
-  var _loc = window.location;
-  try {
-    Object.defineProperty(window,'location',{ get:function(){return _loc;}, set:function(v){ if(blocked(v)) return; try{_loc.href=v;}catch(e){} }, configurable:true });
-  } catch(e){}
+  // Trap document.location too.
+  try { Object.defineProperty(document, 'location', { get: function(){ return window.location; }, configurable: true }); } catch(e){}
 
   // Trap window.open so framed sites can't grab the real parent/top window.
   try {
