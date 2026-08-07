@@ -28,5 +28,25 @@
     "premiumTier": null,
     "premiumExpires": null,
     "createdAt": 1786113696771
+  },
+  "wiretest_msj27p3g": {
+    "username": "wiretest_msj27p3g",
+    "email": "wiretest_msj27p3g@ex.com",
+    "salt": "58892b256767b0f8717d412d08f77a42",
+    "hash": "8a024e018954debdb45e090043dea6ffc858f5769cc3e01062d5997bd2625fbf0f90b07683dbfc464854675be9de12239662384130f327f0af7de2e4e4a630fb",
+    "premium": false,
+    "premiumTier": null,
+    "premiumExpires": null,
+    "createdAt": 1786114091551
+  },
+  "wiretest_msj284vm": {
+    "username": "wiretest_msj284vm",
+    "email": "wiretest_msj284vm@ex.com",
+    "salt": "9429ba961ffe0cbc93af67880f749a68",
+    "hash": "75ea9fd869932c81362fdcd2806309a59463dc3ca3becf7df1b7556c716b336dc82208947bea43ae4505327a54dd3c92578d3a31e0e89c5e3c561077689e6969",
+    "premium": true,
+    "premiumTier": "Monthly Plan",
+    "premiumExpires": null,
+    "createdAt": 1786114111735
   }
 }

@@ -528,10 +528,27 @@ app.post('/api/checkout', express.json(), async (req, res) => {
 app.get('/payment-success', async (req, res) => {
   const sessionId = req.query.session_id;
   let tierName = 'Premium';
+  let granted = false;
   if (sessionId) {
     try {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       tierName = session.metadata?.product || 'Premium';
+      const tier = session.metadata?.tier;
+      const username = session.metadata?.username;
+      const email = session.customer_email || session.customer_details?.email;
+      // Grant premium to the real account (sandbox-key path — works without webhook secret).
+      let target = username ? USERS[String(username).toLowerCase()] : null;
+      if (!target && email) target = Object.values(USERS).find(u => u.email === email) || null;
+      // Fallback: if the buyer is currently logged in via cookie, use that account.
+      if (!target) { const u = parseUser(req); if (u) target = u; }
+      if (target) {
+        target.premium = true;
+        target.premiumTier = STRIPE_TIERS[tier]?.name || tier || 'Premium';
+        target.premiumExpires = null;
+        saveUsers();
+        granted = true;
+        console.log(`[Stripe] Payment-success granted premium to ${target.username} (${target.premiumTier})`);
+      }
     } catch (_) {}
   }
   res.send(`<!DOCTYPE html><html><head><title>Payment Success</title>
@@ -543,7 +560,7 @@ a{display:inline-block;background:#ff7a00;color:#000;text-decoration:none;paddin
 a:hover{filter:brightness(1.1);}</style></head>
 <body><div class="card"><div style="font-size:60px;margin-bottom:10px;">✅</div>
 <h1>${tierName} Activated!</h1>
-<p>Your payment was successful. You now have full premium access.</p>
+<p>${granted ? 'Your payment was successful. You now have full premium access.' : 'Your payment was received. Log in to your account to activate premium.'}</p>
 <a href="/">Back to VPN Browser</a></div></body></html>`);
 });
 
