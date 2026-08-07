@@ -503,8 +503,11 @@ try{
       // Strip upstream X-Frame-Options and X-Content-Type-Options that block iframe embedding
       res.removeHeader('x-frame-options');
       res.removeHeader('x-content-type-options');
+      // CSP: navigate-to 'self' blocks ALL navigation (location=, form submit, etc.)
+      // to foreign origins — the definitive frame-bust defense. form-action + frame-src
+      // are defense-in-depth for older browsers. frame-ancestors prevents others framing us.
       res.set('Content-Security-Policy',
-        "form-action 'self'; frame-src 'self'; frame-ancestors 'self'");
+        "navigate-to 'self'; form-action 'self'; frame-src 'self'; frame-ancestors 'self'");
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
@@ -516,10 +519,9 @@ try{
     // Strip upstream X-Frame-Options for all proxied responses
     res.removeHeader('x-frame-options');
     res.removeHeader('x-content-type-options');
-    // CSP: block foreign-origin form submissions (the iframe self-navigation escape)
-    // and foreign sub-frames. Location traps + static rewrites handle JS navigation.
+    // CSP: navigate-to 'self' blocks ALL navigation to foreign origins.
     res.set('Content-Security-Policy',
-      "form-action 'self'; frame-src 'self'; frame-ancestors 'self'");
+      "navigate-to 'self'; form-action 'self'; frame-src 'self'; frame-ancestors 'self'");
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
