@@ -15,6 +15,16 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-07-29.d
 
 const app = express();
 app.use(express.json());
+
+// Global CSP: allow same-origin iframe embedding for all routes.
+// This is the header fix for "refused to connect" — ensures our /go and /proxy
+// responses can be embedded in our own iframe.
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+  res.removeHeader('X-Frame-Options');
+  next();
+});
+
 app.engine('handlebars', exphbs.engine({ defaultLayout: false }));
 app.set('view engine', 'handlebars');
 app.set('views', path.join(__dirname, 'views'));
@@ -655,11 +665,24 @@ const fullPageProxyHandler = async (req, res) => {
     const contentType = response.headers.get('content-type') || 'text/html';
 
     // Forward Set-Cookie from upstream, scoped to our /go path
+    // Forward Set-Cookie from upstream — rewrite domain to OUR host so the
+    // browser doesn't try to connect to the real domain (which causes
+    // "refused to connect" when the iframe can't reach pornhub.com).
     const setCookie = response.headers.get('set-cookie');
     if (setCookie) {
       const cookies = Array.isArray(setCookie) ? setCookie : [setCookie];
+      const ourHost = req.headers.host || 'pvpn.onrender.com';
       cookies.forEach(c => {
-        const rewritten = c.replace(/;\s*Path=[^;]+/i, '; Path=/go');
+        // Rewrite Path and Domain so cookies stay on our origin
+        let rewritten = c
+          .replace(/;\s*Path=[^;]+/i, '; Path=/go')
+          .replace(/;\s*[Dd]omain=[^;]+/i, '; Domain=' + ourHost)
+          // Remove Secure flag if we're not on HTTPS (Render is, but just in case)
+          .replace(/;\s*[Ss]ecure/i, '');
+        // If no Domain= was present, add one
+        if (!/[Dd]omain=/i.test(rewritten)) {
+          rewritten += '; Domain=' + ourHost;
+        }
         res.append('Set-Cookie', rewritten);
       });
     }
