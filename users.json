@@ -1,0 +1,32 @@
+{
+  "testuser_msj1y3xy": {
+    "username": "testuser_msj1y3xy",
+    "email": "t_testuser_msj1y3xy@ex.com",
+    "salt": "70a35a28b8dfefc75affd313d05992fc",
+    "hash": "c321329826c581b72ae3d30e0848f3d85f3c640c96fae5d385c0956766bb38ddb78e5f08629f0b2c90c7c54445f712fddd12253084588056b98bc83cabe87b99",
+    "premium": false,
+    "premiumTier": null,
+    "premiumExpires": null,
+    "createdAt": 1786113644181
+  },
+  "testuser_msj1yubp": {
+    "username": "testuser_msj1yubp",
+    "email": "t_testuser_msj1yubp@ex.com",
+    "salt": "afec2d98be7bac73e01ecb1c42b72bdf",
+    "hash": "a47162fb893c7e3e536a3a067756d959dc9fac6496d156c4d210d0009304d8b06a9b17dd8fdb8d30d22b701f36d0e02924eb4aadc0dd4192ef04945693281754",
+    "premium": false,
+    "premiumTier": null,
+    "premiumExpires": null,
+    "createdAt": 1786113678139
+  },
+  "testuser_msj1z8pb": {
+    "username": "testuser_msj1z8pb",
+    "email": "t_testuser_msj1z8pb@ex.com",
+    "salt": "c49797a4234d227d117f7eacd8087abd",
+    "hash": "a8ec9e3fe57bdd9d86917c79a7e900c17a24df5b203dd26423ae1e7b636b311628348d9d0291eee00930d7039f2d7abad26f2373a77831b3d08721c2a891a1d2",
+    "premium": false,
+    "premiumTier": null,
+    "premiumExpires": null,
+    "createdAt": 1786113696771
+  }
+}

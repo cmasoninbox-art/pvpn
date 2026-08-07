@@ -338,6 +338,7 @@
         <button class="menu-item heading">Account</button>
         <button class="menu-item" data-action="login">Login</button>
         <button class="menu-item" data-action="signup">Sign Up — if you're ready boys line up</button>
+        <button class="menu-item" id="logoutBtn" data-action="logout" style="display:none; color:#ff7a00;">Log Out</button>
         <button class="menu-item heading" style="margin-top:6px">Pages</button>
         <button class="menu-item" data-action="shop">🏪 Shop</button>
         <button class="menu-item" data-action="admin">Admin Panel</button>
@@ -513,24 +514,21 @@
         e.preventDefault();
         const user = document.getElementById('loginUser').value.trim();
         const pass = document.getElementById('loginPass').value;
-        if (!user || !pass) {
-          loginMsg.textContent = 'Enter username and password';
-          return;
-        }
-        localStorage.setItem('premium', '1');
-        localStorage.setItem('premiumUser', user);
-        loginMsg.textContent = 'Welcome to the party, ' + user + '!';
-        setTimeout(() => {
-          loginMenu.style.display = 'none';
-          const gate = document.getElementById('premiumGate');
-          if (gate) gate.style.display = 'none';
-          const goBtn = document.querySelector('.nav button[type="submit"]');
-          if (goBtn) goBtn.disabled = false;
-          const inputEl = document.getElementById('url');
-          if (inputEl) { inputEl.disabled = false; inputEl.placeholder = 'Enter website or search...'; }
-          alert('Premium unlocked — search enabled');
-          unlockPremiumUI();
-        }, 800);
+        if (!user || !pass) { loginMsg.textContent = 'Enter username and password'; return; }
+        loginMsg.textContent = 'Checking...';
+        fetch('/api/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        }).then(r => r.json().then(j => ({ ok: r.ok, j }))).then(({ ok, j }) => {
+          if (!ok || !j.ok) { loginMsg.textContent = (j && j.error) || 'Login failed'; return; }
+          loginMsg.textContent = 'Welcome, ' + j.user.username + '!';
+          applyUserState(j.user);
+          setTimeout(() => {
+            loginMenu.style.display = 'none';
+            if (j.user.premium) { unlockPremiumUI(); }
+            else { alert('Logged in. Premium is unlocked by purchasing a plan.'); }
+          }, 600);
+        }).catch(() => { loginMsg.textContent = 'Network error'; });
       });
     }
 
@@ -621,31 +619,41 @@
         const email = document.getElementById('regEmail').value.trim();
         const pass = document.getElementById('regPass').value.trim();
         const confirm = document.getElementById('regConfirm').value.trim();
-        if (!user || !email || !pass) {
-          loginMsg.textContent = 'Fill in all fields';
-          return;
-        }
-        if (pass !== confirm) {
-          loginMsg.textContent = 'Passwords do not match';
-          return;
-        }
-        localStorage.setItem('premium', '1');
-        localStorage.setItem('premiumUser', user);
-        localStorage.setItem('premiumEmail', email);
-        loginMsg.textContent = 'Account created, ' + user + '!';
-        setTimeout(() => {
-          loginMenu.style.display = 'none';
-          const gate = document.getElementById('premiumGate');
-          if (gate) gate.style.display = 'none';
-          const goBtn = document.querySelector('.nav button[type="submit"]');
-          if (goBtn) goBtn.disabled = false;
-          const inputEl = document.getElementById('url');
-          if (inputEl) { inputEl.disabled = false; inputEl.placeholder = 'Enter website or search...'; }
-          alert('Welcome to the party, ' + user + '!');
-          unlockPremiumUI();
-        }, 800);
+        if (!user || !email || !pass) { loginMsg.textContent = 'Fill in all fields'; return; }
+        if (pass !== confirm) { loginMsg.textContent = 'Passwords do not match'; return; }
+        loginMsg.textContent = 'Creating account...';
+        fetch('/api/register', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, email, password: pass })
+        }).then(r => r.json().then(j => ({ ok: r.ok, j }))).then(({ ok, j }) => {
+          if (!ok || !j.ok) { loginMsg.textContent = (j && j.error) || 'Registration failed'; return; }
+          loginMsg.textContent = 'Account created, ' + j.user.username + '!';
+          applyUserState(j.user);
+          setTimeout(() => {
+            loginMenu.style.display = 'none';
+            // Accounts are free by default — premium requires a paid plan.
+            alert('Account created! Log in and buy a plan to unlock premium.');
+          }, 600);
+        }).catch(() => { loginMsg.textContent = 'Network error'; });
       });
     }
+
+    // Apply server-authoritative user state (premium only if the backend says so).
+    function applyUserState(user) {
+      if (!user) { localStorage.removeItem('premium'); localStorage.removeItem('premiumUser'); return; }
+      localStorage.setItem('premiumUser', user.username);
+      if (user.premium) { localStorage.setItem('premium', '1'); }
+      else { localStorage.removeItem('premium'); }
+    }
+
+    // On page load, ask the server who we are (cookie-based session).
+    fetch('/api/me').then(r => r.json()).then(d => {
+      if (d && d.ok && d.user) {
+        applyUserState(d.user);
+        const lb = document.getElementById('logoutBtn'); if (lb) lb.style.display = 'block';
+        if (d.user.premium) unlockPremiumUI();
+      }
+    }).catch(() => {});
 
     const input = document.getElementById('url');
     const frame = document.getElementById('frame');
@@ -691,6 +699,12 @@
         menuDropdown.classList.remove('open');
         showRegister();
         if (loginMenu) loginMenu.style.display = 'flex';
+      } else if (action === 'logout') {
+        fetch('/api/logout', { method: 'POST' }).then(() => {
+          localStorage.removeItem('premium'); localStorage.removeItem('premiumUser');
+          const lb = document.getElementById('logoutBtn'); if (lb) lb.style.display = 'none';
+          alert('Logged out.');
+        }).catch(() => {});
       } else if (action === 'categories') {
         alert('Categories page placeholder');
       } else if (action === 'top') {
@@ -1085,10 +1099,8 @@
     });
 
     document.getElementById('premiumUpgrade').addEventListener('click', () => {
-      localStorage.setItem('premium', '1');
-      document.getElementById('premiumGate').style.display = 'none';
-      applySearchLock();
-      applyVpnGate();
+      // Route to the real payment wall — premium is granted by the Stripe webhook, not client-side.
+      window.location.href = '/premium';
     });
 
     input.addEventListener('keydown', e => {

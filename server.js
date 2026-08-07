@@ -80,6 +80,68 @@ app.get('/admin-login', (req, res) => {
   res.send(`<!DOCTYPE html><html><head><title>Admin Login</title><style>body{background:#000;color:#ff7a00;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}input,button{display:block;margin:8px 0;padding:10px;width:240px;border-radius:4px;border:1px solid #ff7a00;background:#111;color:#ff7a00;font-weight:700;}button{background:#ff7a00;color:#000;cursor:pointer;}</style></head><body><form id="f"><h2>ADMIN LOGIN</h2><input name="username" placeholder="Username" autocomplete="username"/><input name="password" type="password" placeholder="Password" autocomplete="current-password"/><button type="submit">Login</button><p id="msg"></p></form><script>document.getElementById('f').addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(e.target);const r=await fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:fd.get('username'),password:fd.get('password')})});if(r.ok){location.href='/admin';}else{const j=await r.json().catch(()=>({}));document.getElementById('msg').textContent=j.error||'Login failed';}});</script></body></html>`);
 });
 
+// ─── USER ACCOUNTS (real backend auth, no instant premium) ──────────
+const USERS_PATH = path.join(__dirname, 'users.json');
+let USERS = {}; // username(lowercased) -> { username, email, salt, hash, premium, premiumTier, premiumExpires, createdAt }
+function loadUsers() { try { USERS = JSON.parse(fs.readFileSync(USERS_PATH, 'utf8')); } catch (_) { USERS = {}; } }
+function saveUsers() { try { fs.writeFileSync(USERS_PATH, JSON.stringify(USERS, null, 2)); } catch (_) {} }
+function publicUser(u) { return { username: u.username, email: u.email, premium: !!u.premium, premiumTier: u.premiumTier, premiumExpires: u.premiumExpires }; }
+function hashPassword(password, salt) { return crypto.scryptSync(password, salt, 64).toString('hex'); }
+function makeUserToken(username) { return username + '.' + sign(username); }
+function parseUser(req) {
+  const parsed = cookie.parse(req.headers.cookie || '');
+  const token = parsed['pvpn_sess'];
+  if (!token) return null;
+  const dot = token.lastIndexOf('.');
+  if (dot < 0) return null;
+  const user = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  if (sign(user) !== sig) return null;
+  return USERS[String(user).toLowerCase()] || null;
+}
+function setUserCookie(res, username) {
+  res.set('Set-Cookie', cookie.serialize('pvpn_sess', makeUserToken(username), {
+    httpOnly: true, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 30
+  }));
+}
+loadUsers();
+
+app.post('/api/register', express.json(), (req, res) => {
+  const username = String(req.body.username || '').trim();
+  const email = String(req.body.email || '').trim();
+  const password = String(req.body.password || '');
+  if (username.length < 3) return res.status(400).json({ ok: false, error: 'Username must be at least 3 characters' });
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ ok: false, error: 'Valid email required' });
+  if (password.length < 6) return res.status(400).json({ ok: false, error: 'Password must be at least 6 characters' });
+  const key = username.toLowerCase();
+  if (USERS[key]) return res.status(409).json({ ok: false, error: 'Username already taken' });
+  const salt = crypto.randomBytes(16).toString('hex');
+  USERS[key] = { username, email, salt, hash: hashPassword(password, salt), premium: false, premiumTier: null, premiumExpires: null, createdAt: Date.now() };
+  saveUsers();
+  setUserCookie(res, username);
+  res.json({ ok: true, user: publicUser(USERS[key]) });
+});
+
+app.post('/api/login', express.json(), (req, res) => {
+  const username = String(req.body.username || '').trim();
+  const password = String(req.body.password || '');
+  const key = username.toLowerCase();
+  const u = USERS[key];
+  if (!u || u.hash !== hashPassword(password, u.salt)) return res.status(401).json({ ok: false, error: 'Invalid username or password' });
+  setUserCookie(res, u.username);
+  res.json({ ok: true, user: publicUser(u) });
+});
+
+app.post('/api/logout', (req, res) => {
+  res.set('Set-Cookie', cookie.serialize('pvpn_sess', '', { path: '/', maxAge: 0 }));
+  res.json({ ok: true });
+});
+
+app.get('/api/me', (req, res) => {
+  const u = parseUser(req);
+  res.json({ ok: true, user: u ? publicUser(u) : null });
+});
+
 const COUNTRIES = [
   { code: 'us', name: 'United States', flag: '🇺🇸' },
   { code: 'uk', name: 'United Kingdom', flag: '🇬🇧' },
@@ -430,6 +492,7 @@ app.post('/api/checkout', express.json(), async (req, res) => {
     const config = STRIPE_TIERS[tier];
     if (!config) return res.status(400).json({ error: 'Invalid tier' });
 
+    const user = parseUser(req);
     const origin = req.headers.origin || `http://localhost:${PORT}`;
     const params = {
       payment_method_types: undefined,  // omit for dynamic payment methods per Stripe best practices
@@ -447,9 +510,11 @@ app.post('/api/checkout', express.json(), async (req, res) => {
       mode: config.mode,
       success_url: `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/premium`,
-      metadata: { tier, product: config.name },
+      metadata: { tier, product: config.name, username: user ? user.username : '' },
       integration_identifier: 'pvpn_premium_xk9vcd6f',
     };
+    // Attach the logged-in account so the webhook can grant premium to the right user
+    if (user && user.email) params.customer_email = user.email;
 
     const session = await stripe.checkout.sessions.create(params);
     res.json({ sessionId: session.id, url: session.url });
@@ -495,8 +560,23 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
   }
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    console.log(`[Stripe] Payment completed: ${session.metadata?.tier} — $${(session.amount_total/100).toFixed(2)} — ${session.customer_email || session.customer_details?.email}`);
-    // TODO: activate premium in your user DB, send confirmation email, etc.
+    const tier = session.metadata?.tier;
+    const username = session.metadata?.username;
+    const email = session.customer_email || session.customer_details?.email;
+    console.log(`[Stripe] Payment completed: ${session.metadata?.tier} — $${(session.amount_total/100).toFixed(2)} — ${email || username}`);
+    // Grant premium to the real account tied to this payment.
+    let target = username ? USERS[String(username).toLowerCase()] : null;
+    if (!target && email) target = Object.values(USERS).find(u => u.email === email) || null;
+    if (target) {
+      target.premium = true;
+      target.premiumTier = STRIPE_TIERS[tier]?.name || tier || 'Premium';
+      // Subscriptions stay premium until cancelled; payments are lifetime-equivalent here.
+      target.premiumExpires = null;
+      saveUsers();
+      console.log(`[Stripe] Granted premium to ${target.username} (${target.premiumTier})`);
+    } else {
+      console.log('[Stripe] No linked account found for this payment — premium not auto-granted');
+    }
   }
   res.json({ received: true });
 });
