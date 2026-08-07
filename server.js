@@ -478,6 +478,15 @@ try{
     };
   } catch(e){}
 
+  // Cancel any navigation that slips past the Location trap (bare window.location =,
+  // form submit, etc.). In an iframe this silently cancels without a dialog.
+  try {
+    window.addEventListener('beforeunload', function(e) {
+      e.preventDefault();
+      e.returnValue = '';
+    });
+  } catch(e){}
+
   // Scrub history navigation to the real domain.
   var _push = history.pushState, _rpl = history.replaceState;
   function scrub(u){ if(u && String(u).indexOf('pornhub') !== -1) return; return u; }
