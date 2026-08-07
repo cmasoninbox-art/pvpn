@@ -410,6 +410,14 @@ async function proxyHandler(req, res) {
           .replace(/parent\.location/g, 'self.location')
           .replace(/window\.top\b/g, 'window.self')
           .replace(/window\.parent\b/g, 'window.self')
+          // Route bare window.location = and document.location = assignments through
+          // the Location.prototype.href setter, which our trap intercepts.
+          .replace(/\bwindow\.location\s*=/g, 'window.location.href =')
+          .replace(/\bdocument\.location\s*=/g, 'document.location.href =')
+          .replace(/\blocation\s*=\s*[^=]/g, (mm) => {
+            // bare `location = url` (no window/document prefix) — convert to location.href
+            return mm.replace('location =', 'location.href =').replace('location=','location.href=');
+          })
           .replace(/\bparent\s*===|\bparent\s*!==|\bparent\s*==|\bparent\s*!=/g, (mm) => mm.replace('parent', 'self'))
           .replace(/\btop\s*===|\btop\s*!==|\btop\s*==|\btop\s*!=/g, (mm) => mm.replace('top', 'self'));
         return open + fixed + close;
