@@ -10,3 +10,10 @@ services:
         value: production
       - key: PORT
         value: 3000
+      # Tailscale lane: set TS_AUTHKEY (ephemeral key) to activate the WireGuard
+      # VPN lane; TS_EXIT_NODE (e.g. 100.x.y.z or hostname) routes egress through it.
+      # Both optional — without them the Tor lane and direct egress still work.
+      - key: TS_AUTHKEY
+        sync: false
+      - key: TS_EXIT_NODE
+        sync: false

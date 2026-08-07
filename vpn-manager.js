@@ -24,6 +24,32 @@ function checkTorAvailable() {
   return torAvailable;
 }
 
+// ---- Tailscale lane (fast WireGuard VPN, userspace SOCKS on 1055) ----
+// Activated in the container by docker-entrypoint.sh when TS_AUTHKEY is set.
+// Probed once; if the daemon isn't up we fall back to Tor / direct.
+const TS_SOCKS = 'socks5://127.0.0.1:1055';
+let tsAgent = null;
+let tsProbed = false;
+function getTailscaleAgent() {
+  if (tsProbed) return tsAgent;
+  tsProbed = true;
+  try {
+    // `tailscale status` exits fast when the daemon is up, errors instantly when not.
+    execSync('tailscale status', { stdio: 'ignore', timeout: 1500 });
+    tsAgent = new SocksProxyAgent(TS_SOCKS);
+  } catch (_) {
+    tsAgent = null;
+  }
+  return tsAgent;
+}
+// Prefer Tailscale (fast) over Tor (slow) for the FREE lane when both exist.
+// Country-pinned Tor still wins for premium geo requests below.
+function getFreeAgent() {
+  const ts = getTailscaleAgent();
+  if (ts) return ts;
+  return getFreeUs();
+}
+
 function ensureCountry(code) {
   if (!checkTorAvailable()) {
     throw new Error('Tor binary not available on this system');
@@ -47,9 +73,16 @@ function ensureCountry(code) {
 }
 
 // Returns a SocksProxyAgent for the given country (premium). Lazily spawned.
+// If Tor is unavailable but the Tailscale lane is up, use it (any exit node).
 function agentForCountry(code) {
-  const rec = ensureCountry(code);
-  return rec.agent;
+  try {
+    const rec = ensureCountry(code);
+    return rec.agent;
+  } catch (e) {
+    const ts = getTailscaleAgent();
+    if (ts) return ts;
+    throw e;
+  }
 }
 
 // Persistent US-pinned Tor exit for the FREE tier: a free VPN, permanently America.
@@ -85,4 +118,4 @@ function warmup(codes) {
   (codes || []).forEach(c => { if (c && c !== 'us') ensureCountry(c); });
 }
 
-module.exports = { agentForCountry, getFreeUs, checkTorAvailable, warmup, shutdownAll, FREE_SOCKS: 'socks5://127.0.0.1:9050' };
+module.exports = { agentForCountry, getFreeUs, getFreeAgent, getTailscaleAgent, checkTorAvailable, warmup, shutdownAll, FREE_SOCKS: 'socks5://127.0.0.1:9050' };

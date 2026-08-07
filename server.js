@@ -224,7 +224,7 @@ async function proxyHandler(req, res) {
         if (isPremium && country && country !== 'us') {
           agent = vpnMgr.agentForCountry(country);   // premium: chosen geo exit
         } else {
-          agent = vpnMgr.getFreeUs(); // free + premium-US: free VPN permanently pinned to America
+          agent = vpnMgr.getFreeAgent(); // free + premium-US: fast Tailscale lane (or US-pinned Tor)
         }
       } catch (torErr) {
         // Tor binary not available (e.g. Render free container) — degrade gracefully
