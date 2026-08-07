@@ -674,11 +674,13 @@ const fullPageProxyHandler = async (req, res) => {
       const ourHost = req.headers.host || 'pvpn.onrender.com';
       cookies.forEach(c => {
         // Rewrite Path and Domain so cookies stay on our origin
+        // Use replaceAll via regex /g flag — node-fetch merges all Set-Cookie
+        // headers into one comma-separated string, so multiple Domain= attrs exist.
         let rewritten = c
-          .replace(/;\s*Path=[^;]+/i, '; Path=/go')
-          .replace(/;\s*[Dd]omain=[^;]+/i, '; Domain=' + ourHost)
+          .replace(/;\s*Path=[^;,]+/gi, '; Path=/go')
+          .replace(/;\s*[Dd]omain=[^;,]+/gi, '; Domain=' + ourHost)
           // Remove Secure flag if we're not on HTTPS (Render is, but just in case)
-          .replace(/;\s*[Ss]ecure/i, '');
+          .replace(/;\s*[Ss]ecure/gi, '');
         // If no Domain= was present, add one
         if (!/[Dd]omain=/i.test(rewritten)) {
           rewritten += '; Domain=' + ourHost;
