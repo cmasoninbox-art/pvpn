@@ -614,12 +614,13 @@
       removeBrowserGate();
     }
 
+    if (registerForm) {
       registerForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const user = document.getElementById('regUser').value.trim();
         const email = document.getElementById('regEmail').value.trim();
-        const pass = document.getElementById('regPass').value;
-        const confirm = document.getElementById('regConfirm').value;
+        const pass = document.getElementById('regPass').value.trim();
+        const confirm = document.getElementById('regConfirm').value.trim();
         if (!user || !email || !pass) {
           loginMsg.textContent = 'Fill in all fields';
           return;
