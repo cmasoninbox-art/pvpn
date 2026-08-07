@@ -414,6 +414,12 @@ async function proxyHandler(req, res) {
           .replace(/\btop\s*===|\btop\s*!==|\btop\s*==|\btop\s*!=/g, (mm) => mm.replace('top', 'self'));
         return open + fixed + close;
       });
+      // Neutralize runtime URL builders that reconstruct the real domain (e.g. the
+      // language selector builds 'https://<cc>.' + data-root). Point data-root at our
+      // own host so any constructed URL stays same-origin (and gets blocked if foreign).
+      rewritten = rewritten.replace(/(data-root=["'])[^"']*(["'])/gi, (mm, p1, p2) => {
+        return p1 + (req.headers.host || 'localhost') + p2;
+      });
       // Inject frame-busting neutralizer. MUST run before any site script. It freezes
       // top/parent/frameElement to self and traps navigation at the PROTOTYPE level so
       // that no matter how framed-page code obtains a Location (window.location,
@@ -429,11 +435,17 @@ try{
   try{ window.parent = _self; }catch(e){}
   try{ window.frameElement = null; }catch(e){}
 
-  // Block navigation to the real (proxied) site's domain. window.location itself cannot be
-  // redefined (non-configurable), so we trap the Location PROTOTYPE, which every Location
-  // object (window/document/anchor) inherits from. This catches href/replace/assign and all
-  // property setters regardless of how the framed page obtains a Location reference.
-  function blocked(v){ return (v && String(v).indexOf('pornhub') !== -1); }
+  // Block navigation to ANY foreign origin (real pornhub, ad/popunder domains, etc).
+  // Legit navigation inside the framed page is same-host (relative or /proxy URLs).
+  function blocked(v){
+    if (!v) return false;
+    var s = String(v);
+    if (s.indexOf('pornhub') !== -1) return true;
+    try {
+      var u = new URL(s, window.location.href);
+      return u.hostname !== window.location.hostname;
+    } catch (_) { return false; }
+  }
   var LocProto = (window.location && Object.getPrototypeOf(window.location)) || (window.Location && window.Location.prototype);
   if (LocProto) {
     try {
