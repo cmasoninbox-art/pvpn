@@ -547,12 +547,16 @@ app.post('/proxy', express.urlencoded({ extended: true }), express.json(), (req,
 // Serves the proxied page directly — no iframe, no CSP jail, no anti-bust JS.
 // All links/resources are rewritten to /go?url=... so the user browses entirely
 // through the proxy, just like hide.me/en/proxy.
+// Supports: Tor/VPN egress, quality enforcement (resolution/speed/subtitles),
+// premium tier checks, and the same sophisticated URL rewriting as /proxy.
 const fullPageProxyHandler = async (req, res) => {
   try {
     let url = (req.query.url || '').trim();
     if (!url) return res.status(400).send('Missing ?url=');
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
     const targetHost = new URL(url).host;
+    const isPremium = !!(req.query.premium && req.query.premium !== '0');
+    const country = (req.query.country || '').toLowerCase();
 
     // Blocklist check
     if (APP_CONFIG.blocklist && APP_CONFIG.blocklist.length) {
@@ -565,12 +569,33 @@ const fullPageProxyHandler = async (req, res) => {
       if (blocked) return res.status(403).send('Blocked by administrator: ' + host);
     }
 
+    // ── Egress: Tor / custom proxy / direct ──────────────────────
+    const useTor = (APP_CONFIG.vpnMode === 'builtin');
+    const useCustom = (APP_CONFIG.vpnMode === 'custom') && APP_CONFIG.localProxy;
+    let agent;
+    if (useCustom) {
+      const lp = APP_CONFIG.localProxy.trim();
+      agent = (/^https?:/i.test(lp)) ? new (require('https-proxy-agent').HttpsProxyAgent)(lp) : new SocksProxyAgent(lp);
+    } else if (useTor) {
+      try {
+        if (isPremium && country && country !== 'us') {
+          agent = vpnMgr.agentForCountry(country);
+        } else {
+          agent = vpnMgr.getFreeAgent();
+        }
+      } catch (torErr) {
+        console.warn('[go] Tor unavailable, falling back to direct egress:', torErr.message);
+        agent = undefined;
+      }
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
 
     const response = await fetch(url, {
       method: req.method === 'POST' ? 'POST' : 'GET',
       body: req.method === 'POST' ? new URLSearchParams(req.body || {}).toString() : undefined,
+      agent,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -578,6 +603,11 @@ const fullPageProxyHandler = async (req, res) => {
         'Accept-Encoding': 'identity',
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
         ...(req.method === 'POST' ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
       },
       redirect: 'follow',
@@ -592,7 +622,6 @@ const fullPageProxyHandler = async (req, res) => {
     if (setCookie) {
       const cookies = Array.isArray(setCookie) ? setCookie : [setCookie];
       cookies.forEach(c => {
-        // Rewrite Path=/ to Path=/go so cookies don't leak to the main site
         const rewritten = c.replace(/;\s*Path=[^;]+/i, '; Path=/go');
         res.append('Set-Cookie', rewritten);
       });
@@ -603,7 +632,23 @@ const fullPageProxyHandler = async (req, res) => {
       const proxyBase = '/go?url=' + encodeURIComponent(base.origin + '/');
       let body = await response.text();
 
-      // Rewrite href/src/action to /go?url=...
+      // ── URL rewriting (same engine as /proxy) ──────────────────
+      const proxyWrap = (raw) => {
+        let u;
+        try { u = new URL(raw); }
+        catch (_) {
+          try { u = new URL(decodeURIComponent(raw)); }
+          catch (e2) {
+            try { u = new URL('https:' + (raw.startsWith('//') ? raw : '//' + raw)); }
+            catch (e3) { return raw; }
+          }
+        }
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return raw;
+        if (u.host === req.headers.host) return raw;
+        return '/go?url=' + encodeURIComponent(u.href);
+      };
+
+      // Rewrite href/src/action
       body = body
         .replace(/\shref=([\"'])([^\"'>]+)\1/gi, (match, q, urlVal) => {
           if (!urlVal || urlVal.startsWith('#') || urlVal.startsWith('javascript:') || urlVal.startsWith('data:') || urlVal.startsWith('/go?url=')) return match;
@@ -618,22 +663,90 @@ const fullPageProxyHandler = async (req, res) => {
           try { const abs = new URL(urlVal, base); return ` action=${q}/go?url=${encodeURIComponent(abs.href)}${q}`; } catch (_) { return match; }
         });
 
+      // Rewrite POST forms to submit through the proxy
+      body = body.replace(/<form([^>]*)>/gi, (match, attrs) => {
+        if (attrs.includes('method="post"') || /method\s*=\s*['"]post['"]/i.test(attrs)) {
+          return `<form${attrs} onsubmit="event.preventDefault(); var f=this; var x=new XMLHttpRequest(); x.open('POST', f.action || location.href, true); x.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); x.send(new URLSearchParams(new FormData(f)).toString());">`;
+        }
+        return match;
+      });
+
+      // Strip meta-refresh redirects that point at the real domain
+      body = body.replace(/<meta[^>]+http-equiv\s*=\s*["']?refresh["']?[^>]*>/gi, (m) => {
+        if (/https?:\/\//i.test(m) && !m.includes('/go?url=')) return '';
+        return m;
+      });
+
       // Rewrite URLs inside <script> blocks
       body = body.replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi, (m, open, code, close) => {
         const fixed = code.replace(/(?:https?:)?\/\/[^\s\"'`<>]+/g, (tok) => {
-          try {
-            const u = tok.startsWith('//') ? new URL('https:' + tok) : new URL(tok);
-            if (u.protocol !== 'http:' && u.protocol !== 'https:') return tok;
-            return '/go?url=' + encodeURIComponent(u.href);
-          } catch (_) { return tok; }
+          if (tok.startsWith('//')) return proxyWrap('https:' + tok);
+          return proxyWrap(tok);
         });
         return open + fixed + close;
       });
 
+      // Second pass: catch escaped-slash and url-encoded URLs
+      const hostParts = base.host.split('.');
+      const stem = hostParts.length > 1 ? hostParts[hostParts.length - 2] : hostParts[0];
+      const hostRe = ('(?:[a-z0-9-]+\\.)*' + stem + '[a-z0-9-]*\\.com');
+      const escRe = new RegExp('(?<!(%3A|\\/go\\?url=))(?:https?:\\/\\/|\\\\+\\/+|%2f%2f)' + hostRe + '[^\\s\"\'`<>]*', 'gi');
+      body = body.replace(escRe, (tok) => {
+        const norm = tok.replace(/^\\+/, '').replace(/^%2f%2f/i, '//').replace(/^https?%3a%2f%2f/i, 'https://').replace(/^\/+/, '//');
+        const u = norm.startsWith('//') ? 'https:' + norm : norm;
+        return proxyWrap(u);
+      });
+
+      // Rewrite data-root attributes to our host
+      body = body.replace(/(data-root=["'])[^"']*(["'])/gi, (mm, p1, p2) => {
+        return p1 + (req.headers.host || 'localhost') + p2;
+      });
+
+      // ── Quality enforcement (resolution/speed/subtitles) ───────
+      const settings = getMediaSettings(req);
+      const enforcement = `
+<script>
+(function(){
+  document.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; });
+  var ENF = ${JSON.stringify(settings)};
+  function applyVideo(v){
+    if(!v) return;
+    try { v.playbackRate = parseFloat(ENF.speed) || 1; } catch(e){}
+    try {
+      var tracks = v.textTracks;
+      if(tracks){ for(var i=0;i<tracks.length;i++){ tracks[i].mode = (ENF.subtitles==='on')?'showing':'hidden'; } }
+    } catch(e){}
+    if(ENF.quality && ENF.quality!=='auto'){
+      var h = parseInt(ENF.quality,10);
+      try { v.style.maxHeight = h + 'px'; v.setAttribute('data-enforced-quality', ENF.quality); } catch(e){}
+    }
+  }
+  function applyAll(){ var vs=document.querySelectorAll('video'); for(var i=0;i<vs.length;i++){ applyVideo(vs[i]); } }
+  try {
+    var orig = document.createElement;
+    document.createElement = function(tag){
+      var el = orig.apply(document, arguments);
+      if(String(tag).toLowerCase()==='video'){
+        setTimeout(function(){ applyVideo(el); }, 0);
+        el.addEventListener('loadedmetadata', function(){ applyVideo(el); });
+        el.addEventListener('canplay', function(){ applyVideo(el); });
+      }
+      return el;
+    };
+  } catch(e){}
+  document.addEventListener('DOMContentLoaded', applyAll);
+  window.addEventListener('load', applyAll);
+  var obs = new MutationObserver(function(muts){ muts.forEach(function(m){ m.addedNodes.forEach(function(n){ if(n&&n.tagName==='VIDEO') applyVideo(n); }); }); });
+  try { obs.observe(document.documentElement, {childList:true, subtree:true}); } catch(e){}
+  applyAll();
+})();
+</script>
+`;
+
       // Inject <base> tag so relative URLs resolve through the proxy
       body = body.replace(/<head([^>]*)>/i, `<head$1><base href="${proxyBase}" target="_self">`);
 
-      // Inject a thin toolbar at the top so the user can navigate to a new URL
+      // Inject toolbar at top of <body>
       const toolbar = `
 <style>
 #vp-toolbar{position:fixed;top:0;left:0;right:0;z-index:99999;background:#000;border-bottom:2px solid #ff7a00;padding:6px 10px;display:flex;gap:8px;align-items:center;font-family:Arial,sans-serif;font-size:13px}
@@ -641,11 +754,13 @@ const fullPageProxyHandler = async (req, res) => {
 #vp-toolbar button{background:#ff7a00;color:#000;border:0;padding:6px 14px;font-weight:900;text-transform:uppercase;border-radius:3px;cursor:pointer;font-size:12px}
 #vp-toolbar button.home{background:#333;color:#ff7a00;border:1px solid #ff7a00}
 #vp-toolbar .url-display{color:#888;font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vp-toolbar .quality{color:#ff7a00;font-size:10px;margin-left:4px}
 body{margin-top:38px!important}
 </style>
 <div id="vp-toolbar">
   <button class="home" onclick="location.href='/'">🏠 Home</button>
   <span class="url-display">${targetHost}</span>
+  <span class="quality">${settings.quality}p ${settings.speed}x</span>
   <input id="vp-url" type="text" placeholder="Enter URL..." value="${url}" onkeydown="if(event.key==='Enter')go()">
   <button onclick="go()">Go</button>
 </div>
@@ -655,16 +770,36 @@ function go(){var u=document.getElementById('vp-url').value.trim();if(u)location
       body = body.replace(/<body([^>]*)>/i, `<body$1>${toolbar}`);
 
       res.set('Content-Type', 'text/html');
-      res.set('Cache-Control', 'no-store');
-      res.send(body);
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      res.set('Access-Control-Allow-Origin', '*');
+      res.send(body + enforcement);
       return;
     }
 
-    // Non-HTML: pass through
+    // Non-HTML: pass through (with asset cache for speed)
+    const cacheKey = url;
+    if (ASSET_CACHE_TYPES.test(contentType)) {
+      const cached = getCachedAsset(cacheKey);
+      if (cached) {
+        res.set('Content-Type', cached.contentType);
+        res.set('Cache-Control', 'public, max-age=600');
+        res.set('X-Proxy-Cache', 'HIT');
+        res.send(cached.buf);
+        return;
+      }
+    }
     res.set('Content-Type', contentType);
     res.set('Cache-Control', 'public, max-age=3600');
+    res.set('Access-Control-Allow-Origin', '*');
     const buf = await response.arrayBuffer();
-    res.send(Buffer.from(buf));
+    const bufData = Buffer.from(buf);
+    if (ASSET_CACHE_TYPES.test(contentType)) {
+      setCachedAsset(cacheKey, bufData, contentType);
+      res.set('X-Proxy-Cache', 'MISS');
+    }
+    res.send(bufData);
   } catch (e) {
     res.status(502).send(`Proxy error: ${e.message}`);
   }
@@ -1218,18 +1353,50 @@ const PORT = process.env.PORT || 3000;
 const mediaSettingsStore = new Map();
 function getMediaSettings(req) {
   const key = req.ip || req.connection.remoteAddress || 'anon';
-  return mediaSettingsStore.get(key) || { quality: '480', speed: '1', subtitles: 'off' };
+  return mediaSettingsStore.get(key) || { quality: APP_CONFIG.defaultQuality || '480', speed: APP_CONFIG.defaultSpeed || '1', subtitles: APP_CONFIG.defaultSubtitles || 'off' };
 }
 app.post('/media-settings', express.json(), (req, res) => {
   const key = req.ip || req.connection.remoteAddress || 'anon';
   const body = req.body || {};
   mediaSettingsStore.set(key, {
-    quality: String(body.quality || '480'),
-    speed: String(body.speed || '1'),
-    subtitles: String(body.subtitles || 'off'),
+    quality: String(body.quality || APP_CONFIG.defaultQuality || '480'),
+    speed: String(body.speed || APP_CONFIG.defaultSpeed || '1'),
+    subtitles: String(body.subtitles || APP_CONFIG.defaultSubtitles || 'off'),
   });
   res.json({ ok: true });
 });
+
+// GET current media settings (for toolbar to display)
+app.get('/media-settings', (req, res) => {
+  res.json(getMediaSettings(req));
+});
+
+// ── Static asset cache for /go (speed optimization) ──────────────────
+// Caches non-HTML proxied assets (images, CSS, JS) in-memory for 10 minutes
+// so repeat visits to the same page don't re-fetch identical resources.
+const assetCache = new Map();
+const ASSET_CACHE_TTL = 10 * 60 * 1000; // 10 min
+const ASSET_CACHE_MAX = 500;            // max entries
+const ASSET_CACHE_TYPES = /^(image\/|text\/css|application\/javascript|text\/javascript|font\/|application\/font|application\/x-font)/i;
+
+function getCachedAsset(key) {
+  const entry = assetCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.t > ASSET_CACHE_TTL) {
+    assetCache.delete(key);
+    return null;
+  }
+  return entry;
+}
+
+function setCachedAsset(key, buf, contentType) {
+  if (assetCache.size >= ASSET_CACHE_MAX) {
+    // Evict oldest
+    const firstKey = assetCache.keys().next().value;
+    assetCache.delete(firstKey);
+  }
+  assetCache.set(key, { buf, contentType, t: Date.now() });
+}
 
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 let APP_CONFIG = {
@@ -1250,6 +1417,10 @@ let APP_CONFIG = {
   defaultCountry: 'us',
   blocklist: [],
   proxyLogEnabled: true,
+  // Default media quality/speed for proxy users (admin-configurable)
+  defaultQuality: '480',
+  defaultSpeed: '1',
+  defaultSubtitles: 'off',
 };
 
 function loadConfig() {
