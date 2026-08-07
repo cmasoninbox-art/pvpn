@@ -807,6 +807,115 @@ try{
   var _push=history.pushState,_rpl=history.replaceState;function scrub(u){if(u&&String(u).indexOf('pornhub')!==-1)return;return u;}try{history.pushState=function(a,t,u){return _push.call(history,a,t,scrub(u));};}catch(e){}try{history.replaceState=function(a,t,u){return _rpl.call(history,a,t,scrub(u));};}catch(e){}
   var mo=new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n&&n.tagName==='META'&&n.httpEquiv&&/refresh/i.test(n.httpEquiv)){if(n.content&&/https?:\\/\\//i.test(n.content)&&!/\\/go\\?url=/.test(n.content)){n.remove();}}});});});try{mo.observe(document.documentElement,{childList:true,subtree:true});}catch(e){}
   document.querySelectorAll('meta[http-equiv="refresh"]').forEach(function(m){if(m.content&&/https?:\\/\\//i.test(m.content)&&!/\\/go\\?url=/.test(m.content)){m.remove();}});
+
+  // ── Intercept ALL dynamic navigation paths ──────────────────────
+  // 1. Click handler: catch clicks on <a> elements with raw URLs
+  document.addEventListener('click', function(e){
+    var el = e.target;
+    while(el && el.tagName !== 'A') el = el.parentElement;
+    if(el && el.href){
+      var h = el.href;
+      if(h && h.indexOf('/go?url=') === -1 && h.indexOf('javascript:') === -1 && h.indexOf('#') !== 0){
+        try { var u = new URL(h, window.location.href); if(u.hostname !== window.location.hostname){ e.preventDefault(); e.stopPropagation(); window.location.href = '/go?url=' + encodeURIComponent(u.href) + '&embedded=1'; return false; } } catch(_){}
+      }
+    }
+  }, true);
+
+  // 2. Override document.write to rewrite URLs in written content
+  var _write = document.write.bind(document);
+  document.write = function(html){
+    if(typeof html === 'string'){
+      html = html.replace(/(href|src|action)=("[^"]*"|'[^']*')/gi, function(m, attr, quoted){
+        var q = quoted.charAt(0);
+        var url = quoted.slice(1, -1);
+        if(/^https?:\/\//i.test(url)){ try{ var u = new URL(url); if(u.hostname !== window.location.hostname) return attr + '=' + q + '/go?url=' + encodeURIComponent(u.href) + q; }catch(_){} }
+        return m;
+      });
+      // Strip meta refresh
+      html = html.replace(/<meta[^>]+http-equiv\s*=\s*["']?refresh["']?[^>]*>/gi, function(m){ if(/https?:\/\//i.test(m) && !/\/go\?url=/.test(m)) return ''; return m; });
+    }
+    return _write(html);
+  };
+  var _writeln = document.writeln.bind(document);
+  document.writeln = function(html){ if(typeof html === 'string'){ return document.write(html + String.fromCharCode(10)); } return _writeln(html); };
+
+  // 3. MutationObserver: rewrite href on dynamically added <a> elements
+  var linkObserver = new MutationObserver(function(ms){
+    ms.forEach(function(m){
+      m.addedNodes.forEach(function(n){
+        if(!n || n.nodeType !== 1) return;
+        // Rewrite <a> hrefs
+        if(n.tagName === 'A' && n.href){
+          try{ var u = new URL(n.href, window.location.href); if(u.hostname !== window.location.hostname && n.href.indexOf('/go?url=') === -1){ n.href = '/go?url=' + encodeURIComponent(u.href); } }catch(_){}
+        }
+        // Rewrite child <a> elements
+        n.querySelectorAll && n.querySelectorAll('a[href]').forEach(function(a){
+          try{ var u2 = new URL(a.href, window.location.href); if(u2.hostname !== window.location.hostname && a.href.indexOf('/go?url=') === -1){ a.href = '/go?url=' + encodeURIComponent(u2.href); } }catch(_){}
+        });
+        // Rewrite <img> srcs
+        if(n.tagName === 'IMG' && n.src){
+          try{ var u3 = new URL(n.src, window.location.href); if(u3.hostname !== window.location.hostname && n.src.indexOf('/go?url=') === -1){ n.src = '/go?url=' + encodeURIComponent(u3.href); } }catch(_){}
+        }
+        n.querySelectorAll && n.querySelectorAll('img[src]').forEach(function(img){
+          try{ var u4 = new URL(img.src, window.location.href); if(u4.hostname !== window.location.hostname && img.src.indexOf('/go?url=') === -1){ img.src = '/go?url=' + encodeURIComponent(u4.href); } }catch(_){}
+        });
+        // Rewrite <form> actions
+        if(n.tagName === 'FORM' && n.action){
+          try{ var u5 = new URL(n.action, window.location.href); if(u5.hostname !== window.location.hostname && n.action.indexOf('/go?url=') === -1){ n.action = '/go?url=' + encodeURIComponent(u5.href); } }catch(_){}
+        }
+        n.querySelectorAll && n.querySelectorAll('form[action]').forEach(function(f){
+          try{ var u6 = new URL(f.action, window.location.href); if(u6.hostname !== window.location.hostname && f.action.indexOf('/go?url=') === -1){ f.action = '/go?url=' + encodeURIComponent(u6.href); } }catch(_){}
+        });
+        // Kill meta refresh tags
+        if(n.tagName === 'META' && n.httpEquiv && /refresh/i.test(n.httpEquiv)){
+          if(n.content && /https?:\/\//i.test(n.content) && !/\/go\?url=/.test(n.content)){ n.remove(); }
+        }
+      });
+    });
+  });
+  try{ linkObserver.observe(document.documentElement, {childList:true, subtree:true}); }catch(e){}
+
+  // 4. Override fetch() and XMLHttpRequest to rewrite URLs
+  if(window.fetch){
+    var _fetch = window.fetch;
+    window.fetch = function(input, opts){
+      if(typeof input === 'string'){
+        try{ var u = new URL(input, window.location.href); if(u.hostname !== window.location.hostname && input.indexOf('/go?url=') === -1){ input = '/go?url=' + encodeURIComponent(u.href); } }catch(_){}
+      } else if(input && input.url){
+        try{ var u2 = new URL(input.url, window.location.href); if(u2.hostname !== window.location.hostname && input.url.indexOf('/go?url=') === -1){ var nw = new Request('/go?url=' + encodeURIComponent(u2.href), input); input = nw; } }catch(_){}
+      }
+      return _fetch(input, opts);
+    };
+  }
+  if(window.XMLHttpRequest){
+    var _xhro = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url){
+      try{ var u = new URL(url, window.location.href); if(u.hostname !== window.location.hostname && url.indexOf('/go?url=') === -1){ url = '/go?url=' + encodeURIComponent(u.href); } }catch(_){}
+      return _xhro.apply(this, arguments);
+    };
+  }
+
+  // 5. Override innerHTML to rewrite URLs in dynamically set HTML
+  var _ihDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+  if(_ihDesc && _ihDesc.set){
+    var _ihSet = _ihDesc.set;
+    Object.defineProperty(Element.prototype, 'innerHTML', {
+      get: _ihDesc.get,
+      set: function(val){
+        if(typeof val === 'string'){
+          val = val.replace(/(href|src|action)=("[^"]*"|'[^']*')/gi, function(m, attr, quoted){
+            var q = quoted.charAt(0);
+            var url = quoted.slice(1, -1);
+            if(/^https?:\/\//i.test(url)){ try{ var u = new URL(url); if(u.hostname !== window.location.hostname) return attr + '=' + q + '/go?url=' + encodeURIComponent(u.href) + q; }catch(_){} }
+            return m;
+          });
+        }
+        return _ihSet.call(this, val);
+      },
+      configurable: true
+    });
+  }
+
   document.addEventListener('contextmenu',function(e){e.preventDefault();return false;});
 }catch(e){}\n})();</script>`;
         body = body.replace(/<head([^>]*)>/i, `<head$1>${antiBust}`);
