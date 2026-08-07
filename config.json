@@ -1,7 +1,7 @@
 {
   "builtinProxyEnabled": true,
   "localProxy": "",
-  "vpnMode": "direct",
+  "vpnMode": "builtin",
   "theme": "default",
   "bannerImage": "/images/bannerpvpn.png",
   "adButtons": [

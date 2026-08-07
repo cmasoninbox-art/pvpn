@@ -85,4 +85,4 @@ function warmup(codes) {
   (codes || []).forEach(c => { if (c && c !== 'us') ensureCountry(c); });
 }
 
-module.exports = { agentForCountry, getFreeUs, warmup, shutdownAll, FREE_SOCKS: 'socks5://127.0.0.1:9050' };
+module.exports = { agentForCountry, getFreeUs, checkTorAvailable, warmup, shutdownAll, FREE_SOCKS: 'socks5://127.0.0.1:9050' };
