@@ -1,0 +1,16 @@
+# VPN Browser on a plain Linux box (used by deploy/deploy-vps.sh)
+[Unit]
+Description=VPN Browser Website
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/vpn-browser
+EnvironmentFile=/etc/vpn-browser.env
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+User=vpnbrowser
+
+[Install]
+WantedBy=multi-user.target

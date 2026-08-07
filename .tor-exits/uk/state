@@ -1,0 +1,32 @@
+# Tor state file last generated on 2026-08-06 20:07:09 local time
+# Other times below are in UTC
+# You *do not* need to edit this file.
+
+Dormant 0
+Guard in=default rsa_id=CC6A7227BABD96175556BD2E2E738D5891911F0D nickname=NTH36R1 sampled_on=2026-08-01T06:17:50 sampled_idx=0 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-08-01T23:56:40 confirmed_idx=0
+Guard in=default rsa_id=9722BEF0B1EC675FBD439936968C6C5711206C5C nickname=AdrianSimo sampled_on=2026-07-26T18:16:00 sampled_idx=1 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-07-26T17:52:08 confirmed_idx=1
+Guard in=default rsa_id=51F0FE9C81C09AA3C399296FDE4A4EA611AFE183 nickname=demise sampled_on=2026-08-03T01:59:45 sampled_idx=2 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-07-30T03:25:08 confirmed_idx=2
+Guard in=default rsa_id=4389FE963F37DF6E296F01ACCE08057D1D688E5A nickname=SmallRelayTelinnor sampled_on=2026-07-31T03:58:09 sampled_idx=3 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-08-03T13:05:58 confirmed_idx=3
+Guard in=default rsa_id=B8AC259D400172997D08120B3BD5A4090841B06F nickname=ForPrivacyNET sampled_on=2026-08-03T19:41:47 sampled_idx=4 sampled_by=0.4.9.6 listed=1 confirmed_on=2026-08-06T02:54:06 confirmed_idx=4
+Guard in=default rsa_id=114555F8664D317BB9616C02810A8A078049EAE3 nickname=Nethergrog sampled_on=2026-07-27T09:54:39 sampled_idx=5 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=7DB60BD027BE689C2328B8526D900E1E7767DE3B nickname=Sachya sampled_on=2026-07-24T13:52:53 sampled_idx=6 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=5C8CC5659757F690C9B5B9BB4A4302E8397818BF nickname=LostSahara sampled_on=2026-07-27T11:06:33 sampled_idx=7 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=E3BF6104564D424282D1D46B1C34DC94CE212E86 nickname=cartwright sampled_on=2026-08-01T01:13:57 sampled_idx=8 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=9308F49A225022FA39011033E1C31EFF5B7B5000 nickname=freeiranandtheworld sampled_on=2026-07-24T14:10:44 sampled_idx=9 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=B0DC874C634483E4796ABC8A1648312FB0B16EB2 nickname=ken sampled_on=2026-07-29T20:23:48 sampled_idx=10 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=5B11EA82ED4DFAD156AFB6ACF306CE0E710AEDF8 nickname=FloTheDev sampled_on=2026-07-28T10:57:34 sampled_idx=11 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=52030C116CEC47B1A27940E52C4806FD05655B5F nickname=Unnamed sampled_on=2026-07-30T17:04:14 sampled_idx=12 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=9BE327C5703B1C249D8DD9FB56FF0A70128BF6EC nickname=stratus7 sampled_on=2026-08-04T14:31:04 sampled_idx=13 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=4C8DD4F9240FDE7CE4767A3CD6AF70805D8CD7C6 nickname=mullbinde7 sampled_on=2026-07-25T20:12:36 sampled_idx=14 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=33BD25D2B77723DF2558EE88583BF91980C81992 nickname=qu0kka sampled_on=2026-08-02T00:55:41 sampled_idx=15 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=AD0D7618B6E7A4D125ABB07B53EACB2146FFC8D9 nickname=Gojira sampled_on=2026-07-29T18:03:16 sampled_idx=16 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=1ECF40908846EB9A47B598F43CDB6B39981D53F9 nickname=Wolf359 sampled_on=2026-07-25T18:11:14 sampled_idx=17 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=C3942A11F266F99FCDC70C2A907D1CA5706921F4 nickname=yungbooke sampled_on=2026-07-24T15:19:37 sampled_idx=18 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=72555B1A3DB0EA37017983629BC176EE0E31299C nickname=HetznerStrongRelay sampled_on=2026-08-01T12:41:13 sampled_idx=19 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=7CE0361F950F2D7C6F9FEACC6BDD731165F1A874 nickname=portoloin sampled_on=2026-08-01T05:21:37 sampled_idx=20 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=8E3092910577346648825D3ED8C9093AD26AF341 nickname=thescribe sampled_on=2026-07-27T01:45:04 sampled_idx=21 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=2B2E5D7BA46B0ED66CEBADE8C9D90F2812A4AA74 nickname=galtlandeu3 sampled_on=2026-07-26T22:54:49 sampled_idx=22 sampled_by=0.4.9.6 listed=1
+Guard in=default rsa_id=4DC139002F7B00E41B3947BDEC44123D5396735C nickname=NTH157R1 sampled_on=2026-08-04T10:08:22 sampled_idx=23 sampled_by=0.4.9.6 listed=1
+LastWritten 2026-08-06 10:07:09
+MinutesSinceUserActivity 756
+TorVersion Tor 0.4.9.6

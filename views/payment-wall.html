@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premium Palace — VPN Browser</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    body { background: #000; color: #fff; margin: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+
+    /* ─── HEADER ─── */
+    .pw-header {
+      text-align: center;
+      padding: 40px 20px 20px;
+    }
+    .pw-header h1 {
+      font-size: 42px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #ff7a00;
+      margin: 0;
+      text-shadow: 0 0 30px rgba(255,122,0,0.4);
+    }
+    .pw-header p {
+      color: #888;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin: 10px 0 0;
+    }
+
+    /* ─── BANNER ─── */
+    .pw-banner {
+      display: block;
+      width: 100vw;
+      margin-left: calc(-50vw + 50%);
+      margin-bottom: 30px;
+      max-height: 220px;
+      object-fit: cover;
+    }
+
+    /* ─── SECTION TITLES ─── */
+    .pw-section-title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #ff7a00;
+      margin: 40px 0 8px;
+    }
+    .pw-section-sub {
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 0 0 24px;
+    }
+
+    /* ─── PRICING GRID ─── */
+    .pw-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      max-width: 1000px;
+      margin: 0 auto 40px;
+      padding: 0 20px;
+    }
+    @media (max-width: 900px) { .pw-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .pw-grid { grid-template-columns: 1fr; } }
+
+    .pw-card {
+      background: #0a0a0a;
+      border: 1px solid #1a1a1a;
+      border-radius: 12px;
+      padding: 24px 18px 20px;
+      text-align: center;
+      position: relative;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .pw-card:hover {
+      border-color: #ff7a00;
+      box-shadow: 0 0 30px rgba(255,122,0,0.12);
+      transform: translateY(-3px);
+    }
+    .pw-card.featured {
+      border-color: #ff7a00;
+      box-shadow: 0 0 30px rgba(255,122,0,0.15);
+    }
+
+    .pw-badge {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ff7a00;
+      color: #000;
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 3px 12px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    .pw-card .tier-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    .pw-card .tier-name {
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .pw-card .tier-price {
+      font-size: 34px;
+      font-weight: 900;
+      color: #ff7a00;
+      margin: 6px 0 2px;
+      line-height: 1;
+    }
+    .pw-card .tier-price span {
+      font-size: 13px;
+      color: #555;
+      font-weight: 400;
+    }
+    .pw-card .tier-period {
+      font-size: 11px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+    }
+    .pw-card .tier-features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 16px;
+      text-align: left;
+      flex: 1;
+    }
+    .pw-card .tier-features li {
+      font-size: 11px;
+      color: #999;
+      padding: 4px 0;
+      border-bottom: 1px solid #151515;
+    }
+    .pw-card .tier-features li::before {
+      content: '✓ ';
+      color: #ff7a00;
+      font-weight: 900;
+    }
+    .pw-card .tier-features li:last-child { border-bottom: 0; }
+
+    .pw-buy-btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      border: 0;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      transition: transform 0.1s ease, filter 0.1s ease;
+    }
+    .pw-buy-btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+    }
+    .pw-buy-btn.primary {
+      background: #ff7a00;
+      color: #000;
+    }
+    .pw-buy-btn.secondary {
+      background: #111;
+      color: #ff7a00;
+      border: 2px solid #ff7a00;
+    }
+    .pw-buy-btn.secondary:hover {
+      background: #ff7a00;
+      color: #000;
+    }
+
+    /* ─── SOCKS DONATE SECTION ─── */
+    .pw-socks {
+      background: #0a0a0a;
+      border: 1px solid #1a1a1a;
+      border-radius: 12px;
+      padding: 20px 16px;
+      text-align: center;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    }
+    .pw-socks:hover {
+      border-color: #ff7a00;
+      box-shadow: 0 0 20px rgba(255,122,0,0.1);
+      transform: translateY(-2px);
+    }
+    .pw-socks-icon {
+      font-size: 40px;
+      margin-bottom: 6px;
+    }
+    .pw-socks h2 {
+      font-size: 15px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #ff7a00;
+      margin: 0 0 4px;
+    }
+    .pw-socks .socks-sub {
+      color: #666;
+      font-size: 11px;
+      margin: 0 0 10px;
+    }
+    .pw-socks .socks-price {
+      font-size: 32px;
+      font-weight: 900;
+      color: #ff7a00;
+      margin: 0 0 2px;
+      line-height: 1;
+    }
+    .pw-socks .socks-tagline {
+      color: #444;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 0 0 12px;
+    }
+    .pw-socks-desc {
+      background: #111;
+      border: 1px solid #1a1a1a;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 0 0 14px;
+      color: #999;
+      font-size: 12px;
+      line-height: 1.5;
+      text-align: left;
+    }
+    .pw-socks-desc strong { color: #ff7a00; }
+    .pw-socks-buy {
+      background: #ff7a00;
+      color: #000;
+      border: 0;
+      padding: 12px 24px;
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.1s ease, filter 0.1s ease;
+    }
+    .pw-socks-buy:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+    }
+
+    /* ─── PAYMENT MODAL ─── */
+    .pw-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+    .pw-modal-overlay.active { display: flex; }
+    .pw-modal {
+      background: #0a0a0a;
+      border: 2px solid #ff7a00;
+      border-radius: 10px;
+      padding: 32px 28px;
+      max-width: 440px;
+      width: 92%;
+      text-align: center;
+      box-shadow: 0 0 50px rgba(255,122,0,0.3);
+    }
+    .pw-modal h2 {
+      color: #ff7a00;
+      font-size: 20px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin: 0 0 6px;
+    }
+    .pw-modal .modal-tier {
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .pw-modal .modal-price {
+      color: #ff7a00;
+      font-size: 32px;
+      font-weight: 900;
+      margin: 8px 0 18px;
+    }
+    .pw-modal .modal-field {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: #000;
+      color: #fff;
+      font-size: 14px;
+    }
+    .pw-modal .modal-field::placeholder { color: #555; }
+    .pw-modal .modal-pay-btn {
+      width: 100%;
+      padding: 14px;
+      background: #ff7a00;
+      color: #000;
+      border: 0;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      transition: filter 0.15s ease;
+    }
+    .pw-modal .modal-pay-btn:hover { filter: brightness(1.1); }
+    .pw-modal .modal-pay-btn:disabled {
+      background: #333;
+      color: #666;
+      cursor: not-allowed;
+    }
+    .pw-modal .modal-cancel {
+      background: transparent;
+      color: #ff7a00;
+      border: 1px solid #ff7a00;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .pw-modal .modal-success {
+      display: none;
+      color: #2ecc71;
+      font-size: 15px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .pw-modal .modal-success .check { font-size: 48px; margin-bottom: 10px; }
+
+    /* ─── BACK LINK ─── */
+    .pw-back {
+      display: block;
+      text-align: center;
+      padding: 20px;
+      color: #ff7a00;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .pw-back:hover { text-decoration: underline; }
+
+    /* ─── FOOTER ─── */
+    .pw-footer {
+      text-align: center;
+      padding: 30px 20px;
+      border-top: 1px solid #1a1a1a;
+      color: #333;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="pw-header">
+    <h1>⭐ Premium Palace</h1>
+    <p>Unlock everything — or support us with socks</p>
+  </div>
+
+  <img class="pw-banner" src="{{bannerImage}}" alt="VPN Browser" />
+
+  <!-- ─── PREMIUM PLANS ─── -->
+  <div class="pw-section-title">Choose Your Plan</div>
+  <div class="pw-section-sub">All plans unlock every feature instantly</div>
+
+  <div class="pw-grid">
+
+    <!-- DAILY -->
+    <div class="pw-card">
+      <div class="tier-icon">⚡</div>
+      <div class="tier-name">Daily Pass</div>
+      <div class="tier-price">$5<span></span></div>
+      <div class="tier-period">per day</div>
+      <ul class="tier-features">
+        <li>Full premium access for 24 hours</li>
+        <li>All VPN countries unlocked</li>
+        <li>720p / 1080p streaming</li>
+        <li>Search enabled</li>
+        <li>No commitment</li>
+      </ul>
+      <button class="pw-buy-btn secondary" onclick="openPayment('Daily Pass','$5/day')">Buy Daily</button>
+    </div>
+
+    <!-- MONTHLY — featured -->
+    <div class="pw-card featured">
+      <div class="pw-badge">Most Popular</div>
+      <div class="tier-icon">🔥</div>
+      <div class="tier-name">Monthly</div>
+      <div class="tier-price">$10<span>/mo</span></div>
+      <div class="tier-period">billed monthly</div>
+      <ul class="tier-features">
+        <li>Full premium access 30 days</li>
+        <li>All VPN countries unlocked</li>
+        <li>720p / 1080p streaming</li>
+        <li>Search enabled</li>
+        <li>Priority speed</li>
+      </ul>
+      <button class="pw-buy-btn primary" onclick="openPayment('Monthly Plan','$10/month')">Buy Monthly</button>
+    </div>
+
+    <!-- QUARTERLY -->
+    <div class="pw-card">
+      <div class="tier-icon">💰</div>
+      <div class="tier-name">Quarterly</div>
+      <div class="tier-price">$25<span>/3mo</span></div>
+      <div class="tier-period">save $5 vs monthly</div>
+      <ul class="tier-features">
+        <li>Full premium access 90 days</li>
+        <li>All VPN countries unlocked</li>
+        <li>720p / 1080p streaming</li>
+        <li>Search enabled</li>
+        <li>Priority speed</li>
+      </ul>
+      <button class="pw-buy-btn secondary" onclick="openPayment('Quarterly Plan','$25/quarter')">Buy Quarterly</button>
+    </div>
+
+    <!-- PERMANENT — featured -->
+    <div class="pw-card featured">
+      <div class="pw-badge">Best Value</div>
+      <div class="tier-icon">👑</div>
+      <div class="tier-name">Lifetime</div>
+      <div class="tier-price">$100</div>
+      <div class="tier-period">one-time • permanent</div>
+      <ul class="tier-features">
+        <li>Permanent premium forever</li>
+        <li>All VPN countries unlocked</li>
+        <li>720p / 1080p streaming</li>
+        <li>Search enabled</li>
+        <li>Priority speed</li>
+        <li>Early access to new features</li>
+      </ul>
+      <button class="pw-buy-btn primary" onclick="openPayment('Lifetime Premium','$100 one-time')">Buy Lifetime</button>
+    </div>
+
+  </div>
+
+  <!-- ─── SOCKS DONATE ─── -->
+  <div class="pw-section-title">Support The Cause</div>
+  <div class="pw-section-sub">We need socks. Seriously.</div>
+
+  <div class="pw-grid" style="max-width:1000px;">
+
+    <!-- Regular Socks -->
+    <div class="pw-socks" style="margin:0;">
+        <div class="pw-socks-icon">🧦</div>
+        <h2>We Need Socks</h2>
+        <p class="socks-sub">Donate to the cause — and get a real pair of socks</p>
+        <div class="socks-price">$10</div>
+        <p class="socks-tagline">one pair of premium socks • shipped to your door</p>
+        <div class="pw-socks-desc">
+          Running a VPN browser isn't cheap. Servers, bandwidth, Tor nodes — it all adds up.
+          <br/><br/>
+          <strong>For $10 you get a pair of VPN Browser branded socks</strong> shipped directly to you.
+          They're comfortable, they're orange, and they keep your feet warm while you browse
+          (or just Wikipedia, we don't judge).
+        </div>
+        <button class="pw-socks-buy" onclick="openPayment('Socks Donation','$10 — a pair of socks')">Buy Socks 🧦</button>
+    </div>
+
+    <!-- Jessie's Used Sock -->
+    <div class="pw-socks" style="margin:0;">
+      <div class="pw-socks-inner" style="border-color:#e02424; border-style:solid;">
+        <div class="pw-socks-icon">👃</div>
+        <h2 style="color:#e02424;">Jessie's Used Sock</h2>
+        <p class="socks-sub">A legendary sock. Worn. Loved. Now yours.</p>
+        <div class="socks-price" style="color:#e02424;">$1,000</div>
+        <p class="socks-tagline">one used sock • signed by Jessie • authentic smell</p>
+        <div class="pw-socks-desc" style="border-color:#e02424;">
+          This isn't just any sock. This is <strong style="color:#e02424;">Jessie's actual worn sock</strong> —
+          the one she wore during the legendary 72-hour coding marathon that launched this entire site.
+          <br/><br/>
+          It's been authenticated. It's been sealed (for your safety). It comes with a
+          certificate of authenticity and a handwritten thank-you note from Jessie herself.
+          <br/><br/>
+          <strong style="color:#e02424;">Only 1 exists. When it's gone, it's gone.</strong>
+        </div>
+        <button class="pw-socks-buy" style="background:#e02424;" onclick="openPayment('Jessie Used Sock','$1,000 — legendary')">$1,000 Buy It 🏆</button>
+      </div>
+    </div>
+
+    <!-- Cole's Dirty Work Socks -->
+    <div class="pw-socks" style="margin:0;">
+      <div class="pw-socks-inner" style="border-color:#8B4513; border-style:solid;">
+        <div class="pw-socks-icon">🔨</div>
+        <h2 style="color:#D2691E;">Cole's Dirty Work Socks</h2>
+        <p class="socks-sub">These socks have seen things. Terrible things.</p>
+        <div class="socks-price" style="color:#D2691E;">$500</div>
+        <p class="socks-tagline">one pair • unwashed since 2019 • industrial grade funk</p>
+        <div class="pw-socks-desc" style="border-color:#8B4513;">
+          These are <strong style="color:#D2691E;">Cole's actual work socks</strong> —
+          the ones he wore every single day building this VPN browser from scratch.
+          14-hour days. No breaks. No laundry.
+          <br/><br/>
+          They've been through server installs, debugging sessions, and at least
+          three existential crises. The smell is... indescribable. We tried to
+          describe it on the certificate but the ink kept running.
+          <br/><br/>
+          <strong style="color:#D2691E;">Comes with: 1 pair of socks, 1 hazmat bag,
+          1 certificate of authenticity, 1 therapy voucher.</strong>
+        </div>
+        <button class="pw-socks-buy" style="background:#8B4513;color:#fff;" onclick="openPayment('Coles Work Socks','$500 — legendary funk')">$500 Buy It 🔨</button>
+      </div>
+    </div>
+        <button class="pw-socks-buy" style="background:#e02424;" onclick="openPayment('Jessie Used Sock','$1,000 — legendary')">$1,000 Buy It 🏆</button>
+      </div>
+    </div>
+
+  </div>
+
+  <a href="/" class="pw-back">← Back to VPN Browser</a>
+
+  <div class="pw-footer">
+    VPN Browser &copy; 2026 &mdash; All payments processed securely
+  </div>
+
+  <!-- ─── PAYMENT MODAL ─── -->
+  <div class="pw-modal-overlay" id="paymentModal">
+    <div class="pw-modal">
+      <div id="paymentForm">
+        <h2>Secure Checkout</h2>
+        <div class="modal-tier" id="modalTier"></div>
+        <div class="modal-price" id="modalPrice"></div>
+        <p style="color:#888;font-size:13px;margin:0 0 16px;">Redirecting to Stripe's secure payment page...</p>
+        <button class="modal-pay-btn" id="payBtn" onclick="redirectToCheckout()">Continue to Payment</button>
+        <button class="modal-cancel" onclick="closePayment()">Cancel</button>
+      </div>
+      <div class="modal-success" id="paymentSuccess">
+        <div class="check">✅</div>
+        <div id="successMsg">Payment successful!</div>
+        <p style="color:#aaa;font-size:13px;margin-top:12px;">Check your email for confirmation.</p>
+        <button class="modal-cancel" style="margin-top:16px;" onclick="closePayment()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tier mapping: button tier name -> API tier ID
+    const TIER_MAP = {
+      'Daily Pass': 'daily',
+      'Monthly Plan': 'monthly',
+      'Quarterly Plan': 'quarterly',
+      'Lifetime Premium': 'lifetime',
+      'Socks Donation': 'socks',
+      'Jessie Used Sock': 'jessie',
+      'Coles Work Socks': 'coles'
+    };
+
+    let currentTier = '';
+
+    function openPayment(tier, price) {
+      currentTier = tier;
+      document.getElementById('modalTier').textContent = tier;
+      document.getElementById('modalPrice').textContent = price;
+      document.getElementById('paymentForm').style.display = 'block';
+      document.getElementById('paymentSuccess').style.display = 'none';
+      document.getElementById('paymentModal').classList.add('active');
+    }
+
+    function closePayment() {
+      document.getElementById('paymentModal').classList.remove('active');
+    }
+
+    async function redirectToCheckout() {
+      const tierId = TIER_MAP[currentTier];
+      if (!tierId) { alert('Unknown tier'); return; }
+
+      const btn = document.getElementById('payBtn');
+      btn.disabled = true;
+      btn.textContent = 'Creating checkout...';
+
+      try {
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tier: tierId })
+        });
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;  // Redirect to Stripe Checkout
+        } else {
+          alert('Error: ' + (data.error || 'Failed to create checkout'));
+          btn.disabled = false;
+          btn.textContent = 'Continue to Payment';
+        }
+      } catch (err) {
+        alert('Network error: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Continue to Payment';
+      }
+    }
+
+    // Close modal on overlay click
+    document.getElementById('paymentModal').addEventListener('click', function(e) {
+      if (e.target === this) closePayment();
+    });
+  </script>
+</body>
+</html>

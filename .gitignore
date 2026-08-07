@@ -1,0 +1,6 @@
+.env
+.hermes/
+.agents/
+.claude/
+node_modules/
+public/images/sidead-temp.png

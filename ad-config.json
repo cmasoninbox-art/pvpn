@@ -1,0 +1,32 @@
+{
+  "popunderEnabled": true,
+  "networks": {
+    "exoclick": {
+      "enabled": false,
+      "formats": ["banner", "popunder"],
+      "zones": {
+        "exoclick_banner_top": "1234567",
+        "exoclick_banner_left": "1234568",
+        "exoclick_banner_right": "1234569",
+        "exoclick_popunder": "1234570"
+      }
+    },
+    "adsterra": {
+      "enabled": false,
+      "formats": ["banner", "popunder", "push"],
+      "zones": {
+        "adsterra_banner_top": "demo-zone-1",
+        "adsterra_banner_left": "demo-zone-2",
+        "adsterra_banner_right": "demo-zone-3"
+      }
+    },
+    "trafficstars": { "enabled": false, "formats": ["banner"], "zones": {} },
+    "juicyads": { "enabled": false, "formats": ["banner"], "zones": {} },
+    "clickadu": { "enabled": false, "formats": ["popunder"], "zones": {} },
+    "propellerads": { "enabled": false, "formats": ["popunder", "push"], "zones": {} },
+    "hilltopads": { "enabled": false, "formats": ["popunder", "push"], "zones": {} },
+    "adcash": { "enabled": false, "formats": ["banner", "popunder"], "zones": {} },
+    "richads": { "enabled": false, "formats": ["popunder"], "zones": {} },
+    "eroadvertising": { "enabled": false, "formats": ["banner"], "zones": {} }
+  }
+}

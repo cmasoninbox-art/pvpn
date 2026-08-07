@@ -1,0 +1,14 @@
+[Unit]
+Description=VPN Browser Website
+After=network.target
+
+[Service]
+WorkingDirectory=/mnt/c/Users/mindc/Desktop/vpn-browser-website
+ExecStart=/home/mindc/.hermes/node/bin/node /mnt/c/Users/mindc/Desktop/vpn-browser-website/server.js
+Restart=always
+RestartSec=3
+User=mindc
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

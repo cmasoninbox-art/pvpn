@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Admin Panel</title>
+<style>
+  body { background:#000; color:#ff7a00; font-family:sans-serif; padding:24px; max-width:980px; margin:0 auto; }
+  h1,h2 { text-transform:uppercase; letter-spacing:1px; }
+  .card { border:1px solid #ff7a00; border-radius:6px; padding:16px; margin:16px 0; background:#0a0a0a; }
+  label { display:block; margin:8px 0 4px; font-weight:700; }
+  input, select, button, textarea { padding:9px; border-radius:4px; border:1px solid #ff7a00; background:#111; color:#ff7a00; font-weight:700; width:100%; box-sizing:border-box; }
+  button { background:#ff7a00; color:#000; cursor:pointer; margin-top:8px; }
+  button.del { background:#400; color:#f88; border-color:#f55; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:180px; }
+  a { color:#ff7a00; }
+  .ad-item { border:1px solid #333; border-radius:4px; padding:8px; margin:8px 0; display:flex; justify-content:space-between; align-items:center; }
+  .ad-item.paid { border-color:#2ecc71; }
+  .muted { color:#888; font-size:12px; }
+  pre { white-space:pre-wrap; word-break:break-all; background:#111; padding:8px; border-radius:4px; color:#aaa; }
+</style>
+</head>
+<body>
+<h1>Admin Panel</h1>
+<p>Logged in as <b id="who"></b></p>
+
+<div class="card">
+  <h2>Theme</h2>
+  <div class="row">
+    <div>
+      <label>Theme</label>
+      <select id="theme">
+        <option value="default">Default (Black/Orange)</option>
+        <option value="dark">Dark</option>
+        <option value="blue">Blue</option>
+        <option value="green">Green</option>
+        <option value="purple">Purple</option>
+        <option value="light">Light</option>
+      </select>
+    </div>
+    <div>
+      <label>Banner Image</label>
+      <input type="file" id="banner" accept="image/*" />
+    </div>
+  </div>
+  <button id="saveTheme">Save Theme &amp; Banner</button>
+  <p class="muted">Banner uploads to /images/uploads/ and replaces the top banner.</p>
+</div>
+
+<div class="card">
+  <h2>Paid Advertising</h2>
+  <p class="muted">Add ads. Mark "Paid" once payment is received; unpaid ads stay hidden from the public site until paid.</p>
+  <div class="row">
+    <div><label>Label</label><input id="adLabel" placeholder="Sponsor Name" /></div>
+    <div><label>Destination URL</label><input id="adUrl" placeholder="https://..." /></div>
+  </div>
+  <div class="row">
+    <div><label>Image URL (optional)</label><input id="adImage" placeholder="https://.../ad.png" /></div>
+    <div><label>Price ($)</label><input id="adPrice" type="number" value="0" /></div>
+  </div>
+  <div class="row">
+    <div><label>Slot</label>
+      <select id="adSlot"><option value="side">Side</option><option value="footer">Footer</option><option value="banner">Banner</option></select>
+    </div>
+    <div><label><input type="checkbox" id="adPaid" style="width:auto;display:inline" /> Paid (received)</label></div>
+  </div>
+  <button id="addAd">Add Ad</button>
+  <h3>Current Ads</h3>
+  <div id="adList"></div>
+</div>
+
+<div class="card">
+  <h2>Ad Networks (10 Networks)</h2>
+  <p class="muted">Enable networks and enter your zone IDs. Get zone IDs by signing up at each network's publisher page. Popunders are capped at 1 per user per 24h.</p>
+  <div id="adNetworkRows"></div>
+  <button id="saveAdNetworks">Save Ad Network Config</button>
+</div>
+
+<div class="card">
+  <h2>Raw Config</h2>
+  <pre id="cfg"></pre>
+</div>
+
+<div class="card">
+  <h2>Site Settings</h2>
+  <div class="row">
+    <div><label>Site Title</label><input id="siteTitle" placeholder="PVPN Browser" /></div>
+    <div><label>Default Exit Country</label>
+      <select id="defaultCountry">
+        <option value="us">US</option><option value="uk">UK</option>
+        <option value="de">DE</option><option value="fr">FR</option>
+        <option value="nl">NL</option><option value="ca">CA</option>
+        <option value="jp">JP</option><option value="au">AU</option>
+      </select>
+    </div>
+  </div>
+  <div class="row">
+    <div><label><input type="checkbox" id="maintenanceMode" style="width:auto;display:inline" /> Maintenance Mode (take site offline)</label></div>
+    <div><label><input type="checkbox" id="proxyLogEnabled" style="width:auto;display:inline" /> Log Proxy Activity</label></div>
+  </div>
+  <button id="saveSite">Save Site Settings</button>
+  <p class="muted">Maintenance mode shows an "UNDER MAINTENANCE" page to all visitors. Default country applies when a user picks no specific geo exit.</p>
+</div>
+
+<div class="card">
+  <h2>Blocklist</h2>
+  <p class="muted">Forbid domains for all proxied browsing. One domain per line (e.g. <code>example.com</code>). Blocks subdomains too.</p>
+  <textarea id="blocklist" rows="5" placeholder="bad-site.com&#10;spam.example.org"></textarea>
+  <button id="saveBlocklist">Save Blocklist</button>
+  <h3>Blocked</h3>
+  <div id="blockListOut" class="muted"></div>
+</div>
+
+<div class="card">
+  <h2>Ad Buttons (bottom bar)</h2>
+  <p class="muted">The 3 buttons under the browser frame. Toggle "Free" to route non-premium users (middle tease).</p>
+  <div id="adBtnRows"></div>
+  <button id="addAdBtn">+ Add Button</button>
+  <button id="saveAdBtns">Save Ad Buttons</button>
+</div>
+
+<div class="card">
+  <h2>Live Proxy Activity</h2>
+  <p class="muted">Last 200 proxied requests (real-time, no refresh button needed).</p>
+  <button id="refreshLog">Refresh</button>
+  <pre id="proxyLogOut">loading…</pre>
+</div>
+
+<p><a href="/admin/logout">Logout</a> | <a href="/">Home</a></p>
+
+<script>
+async function api(method, url, body) {
+  const opt = { method, headers: {} };
+  if (body instanceof FormData) { /* let browser set content-type */ }
+  else if (body) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+  const r = await fetch(url, opt);
+  if (!r.ok) throw new Error((await r.json().catch(()=>({}))).error || r.status);
+  return r;
+}
+
+async function load() {
+  const cfg = await (await api('GET', '/admin/config')).json();
+  document.getElementById('who').textContent = 'admin';
+  document.getElementById('theme').value = cfg.theme || 'default';
+  document.getElementById('cfg').textContent = JSON.stringify(cfg, null, 2);
+  const ads = cfg.ads || [];
+  const list = document.getElementById('adList');
+  list.innerHTML = '';
+  ads.forEach(a => {
+    const d = document.createElement('div');
+    d.className = 'ad-item' + (a.paid ? ' paid' : '');
+    d.innerHTML = `<span><b>${a.label}</b> — ${a.url}<br><span class="muted">$${a.price} · ${a.paid ? 'PAID' : 'UNPAID'} · ${a.slot}</span></span>`;
+    const del = document.createElement('button');
+    del.className = 'del'; del.textContent = 'Delete';
+    del.onclick = async () => { await api('DELETE', '/admin/ads/' + a.id); load(); };
+    d.appendChild(del);
+    list.appendChild(d);
+  });
+  loadSite();
+  loadBlocklist();
+  loadAdBtns();
+}
+
+async function loadSite() {
+    const cfg = await (await api('GET', '/admin/config')).json();
+    document.getElementById('siteTitle').value = cfg.siteTitle || 'PVPN Browser';
+    document.getElementById('defaultCountry').value = cfg.defaultCountry || 'us';
+    document.getElementById('maintenanceMode').checked = !!cfg.maintenanceMode;
+    document.getElementById('proxyLogEnabled').checked = cfg.proxyLogEnabled !== false;
+    }
+
+    document.getElementById('saveSite').onclick = async () => {
+    await api('PUT', '/admin/site', {
+      siteTitle: document.getElementById('siteTitle').value,
+      defaultCountry: document.getElementById('defaultCountry').value,
+      maintenanceMode: document.getElementById('maintenanceMode').checked,
+      proxyLogEnabled: document.getElementById('proxyLogEnabled').checked,
+    });
+    alert('Site settings saved'); load();
+    };
+
+    async function loadBlocklist() {
+    const list = await (await api('GET', '/admin/blocklist')).json();
+    document.getElementById('blocklist').value = list.join('\n');
+    document.getElementById('blockListOut').textContent = list.length ? list.join(', ') : '(none)';
+    }
+    document.getElementById('saveBlocklist').onclick = async () => {
+    const raw = document.getElementById('blocklist').value;
+    const list = raw.split('\n').map(s => s.trim()).filter(Boolean);
+    await api('PUT', '/admin/blocklist', list);
+    loadBlocklist();
+    alert('Blocklist saved');
+    };
+
+    async function loadAdBtns() {
+    const btns = await (await api('GET', '/admin/ad-buttons')).json();
+    const wrap = document.getElementById('adBtnRows');
+    wrap.innerHTML = '';
+    btns.forEach((b, i) => {
+      const d = document.createElement('div');
+      d.className = 'row';
+      d.innerHTML = `<div><label>Label</label><input data-k="label" data-i="${i}" value="${b.label || ''}" /></div>` +
+        `<div><label>URL</label><input data-k="url" data-i="${i}" value="${b.url || ''}" /></div>` +
+        `<div><label><input type="checkbox" data-k="free" data-i="${i}" ${b.free ? 'checked' : ''} style="width:auto;display:inline" /> Free tease</label></div>`;
+      wrap.appendChild(d);
+    });
+    }
+    document.getElementById('addAdBtn').onclick = async () => {
+    const btns = await (await api('GET', '/admin/ad-buttons')).json();
+    btns.push({ label: 'NEW', url: 'https://example.com' });
+    await api('PUT', '/admin/ad-buttons', btns);
+    loadAdBtns();
+    };
+    document.getElementById('saveAdBtns').onclick = async () => {
+    const inputs = document.querySelectorAll('#adBtnRows [data-k]');
+    const map = {};
+    inputs.forEach(el => {
+      const i = el.dataset.i, k = el.dataset.k;
+      map[i] = map[i] || {};
+      map[i][k] = (k === 'free') ? el.checked : el.value;
+    });
+    const btns = Object.keys(map).sort().map(i => ({
+      label: map[i].label || 'BUTTON', url: map[i].url || 'https://example.com', free: !!map[i].free,
+    }));
+    await api('PUT', '/admin/ad-buttons', btns);
+    alert('Ad buttons saved'); loadAdBtns();
+    };
+
+    async function loadProxyLog() {
+    try {
+      const log = await (await api('GET', '/admin/proxy-log')).json();
+      const out = log.slice(0, 50).map(e => {
+        const d = new Date(e.t).toLocaleTimeString();
+        return `[${d}] ${e.premium ? 'PREM' : 'free'} ${e.country}  ${e.url}`;
+      }).join('\n');
+      document.getElementById('proxyLogOut').textContent = out || '(no activity)';
+    } catch (e) { document.getElementById('proxyLogOut').textContent = 'log error'; }
+    }
+    document.getElementById('refreshLog').onclick = loadProxyLog;
+    setInterval(loadProxyLog, 5000);
+
+    document.getElementById('saveTheme').onclick = async () => {
+  const theme = document.getElementById('theme').value;
+  const file = document.getElementById('banner').files[0];
+  const cfg = await (await api('GET', '/admin/config')).json();
+  cfg.theme = theme;
+  await api('PUT', '/admin/config', cfg);
+  if (file) {
+    const fd = new FormData();
+    fd.append('banner', file);
+    await fetch('/admin/banner', { method: 'POST', body: fd });
+  }
+  load();
+  alert('Saved');
+};
+
+document.getElementById('addAd').onclick = async () => {
+  const body = {
+    label: document.getElementById('adLabel').value,
+    url: document.getElementById('adUrl').value,
+    image: document.getElementById('adImage').value,
+    price: Number(document.getElementById('adPrice').value || 0),
+    slot: document.getElementById('adSlot').value,
+    paid: document.getElementById('adPaid').checked,
+  };
+  if (!body.label || !body.url) return alert('Label and URL required');
+  await api('POST', '/admin/ads', body);
+  load();
+};
+
+load();
+loadSite();
+loadBlocklist();
+loadAdBtns();
+loadProxyLog();
+loadAdNetworks();
+
+// ─── AD NETWORKS MANAGER ──────────────────────────────────────────
+const NETWORK_LABELS = {
+  exoclick: 'ExoClick',
+  trafficstars: 'TrafficStars',
+  adsterra: 'Adsterra',
+  juicyads: 'JuicyAds',
+  clickadu: 'ClickAdu',
+  propellerads: 'PropellerAds',
+  hilltopads: 'HilltopAds',
+  adcash: 'AdCash',
+  richads: 'RichAds',
+  eroadvertising: 'EroAdvertising',
+};
+const ZONE_SLOTS = ['banner_top', 'banner_left', 'banner_right', 'popunder', 'push'];
+
+async function loadAdNetworks() {
+  try {
+    const cfg = await (await api('GET', '/admin/ad-networks')).json();
+    const wrap = document.getElementById('adNetworkRows');
+    wrap.innerHTML = '';
+    const nets = cfg.networks || {};
+    Object.keys(NETWORK_LABELS).forEach(key => {
+      const net = nets[key] || { enabled: false, formats: [], zones: {} };
+      const div = document.createElement('div');
+      div.style.cssText = 'border:1px solid #333;border-radius:6px;padding:12px;margin:10px 0;background:#0a0a0a;';
+      let zoneInputs = '';
+      ZONE_SLOTS.forEach(slot => {
+        const fullKey = key + '_' + slot;
+        const val = (net.zones && net.zones[fullKey]) || '';
+        zoneInputs += `<div style="flex:1;min-width:150px;"><label style="font-size:11px;color:#888;">${slot}</label><input data-net="${key}" data-slot="${fullKey}" value="${val}" placeholder="Zone ID" style="font-size:11px;padding:6px;" /></div>`;
+      });
+      div.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+          <label style="margin:0;"><input type="checkbox" data-net-enabled="${key}" ${net.enabled ? 'checked' : ''} style="width:auto;display:inline;" /> <b>${NETWORK_LABELS[key]}</b></label>
+          <span class="muted" style="font-size:11px;">Formats: ${(net.formats || []).join(', ')}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">${zoneInputs}</div>
+      `;
+      wrap.appendChild(div);
+    });
+  } catch (e) { console.error('Failed to load ad networks:', e); }
+}
+
+document.getElementById('saveAdNetworks').onclick = async () => {
+  const networks = {};
+  Object.keys(NETWORK_LABELS).forEach(key => {
+    const enabled = document.querySelector(`[data-net-enabled="${key}"]`);
+    const zones = {};
+    document.querySelectorAll(`[data-net="${key}"]`).forEach(inp => {
+      if (inp.value.trim()) zones[inp.dataset.slot] = inp.value.trim();
+    });
+    networks[key] = {
+      enabled: enabled ? enabled.checked : false,
+      formats: ZONE_SLOTS.filter(s => s.includes('banner') ? ['exoclick','trafficstars','adsterra','juicyads','adcash','eroadvertising'].includes(key) : true),
+      zones: zones,
+    };
+  });
+  await api('PUT', '/admin/ad-networks', { networks, popunderEnabled: true });
+  alert('Ad network config saved');
+  loadAdNetworks();
+};
+</script>
+</body>
+</html>

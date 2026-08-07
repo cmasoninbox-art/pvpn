@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Members Forum — PVPN</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #000; color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    a { color: #ff7a00; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ─── AUTH GATE ─── */
+    #authGate {
+      position: fixed; inset: 0; background: #000; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #authGate.hidden { display: none; }
+    .auth-box {
+      background: #0a0a0a; border: 2px solid #ff7a00; border-radius: 10px;
+      padding: 32px 28px; max-width: 400px; width: 92%; text-align: center;
+      box-shadow: 0 0 40px rgba(255,122,0,0.2);
+    }
+    .auth-box h1 { color: #ff7a00; font-size: 22px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
+    .auth-box p { color: #888; font-size: 13px; margin-bottom: 16px; }
+    .auth-box input {
+      width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #333;
+      border-radius: 6px; background: #111; color: #fff; font-size: 14px;
+    }
+    .auth-box input::placeholder { color: #555; }
+    .auth-box button {
+      width: 100%; padding: 12px; background: #ff7a00; color: #000; border: 0;
+      border-radius: 6px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
+      cursor: pointer; margin-bottom: 8px;
+    }
+    .auth-box button:hover { filter: brightness(1.1); }
+    .auth-box .toggle { background: transparent; color: #ff7a00; border: 1px solid #ff7a00; font-size: 12px; }
+    .auth-box .msg { color: #ff7a00; font-size: 12px; min-height: 16px; margin-top: 8px; }
+
+    /* ─── LAYOUT ─── */
+    .forum-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; background: #0a0a0a; border-bottom: 1px solid #1a1a1a;
+    }
+    .forum-header h2 { color: #ff7a00; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; }
+    .forum-header .user-info { font-size: 12px; color: #888; }
+    .forum-header .user-info b { color: #ff7a00; }
+    .forum-header .user-info .socks-badge { margin-left: 4px; }
+    .forum-header a { margin-left: 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+
+    .forum-nav {
+      display: flex; gap: 0; border-bottom: 1px solid #1a1a1a; background: #050505;
+    }
+    .forum-nav button {
+      flex: 1; padding: 12px; background: transparent; border: 0; border-bottom: 2px solid transparent;
+      color: #666; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .forum-nav button.active { color: #ff7a00; border-bottom-color: #ff7a00; background: rgba(255,122,0,0.05); }
+    .forum-nav button:hover { color: #ff7a00; }
+
+    .forum-content { max-width: 900px; margin: 0 auto; padding: 20px; }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ─── THREADS ─── */
+    .thread-list { display: flex; flex-direction: column; gap: 8px; }
+    .thread {
+      display: flex; align-items: center; gap: 12px; padding: 14px;
+      background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 8px;
+      cursor: pointer; transition: border-color 0.2s;
+    }
+    .thread:hover { border-color: #ff7a00; }
+    .thread .votes { text-align: center; min-width: 40px; }
+    .thread .votes .count { font-size: 18px; font-weight: 900; color: #ff7a00; }
+    .thread .votes .label { font-size: 10px; color: #555; text-transform: uppercase; }
+    .thread .info { flex: 1; }
+    .thread .info h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .thread .info .meta { font-size: 11px; color: #666; }
+    .thread .info .meta .tier { color: #ff7a00; }
+    .thread .tag {
+      padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .tag-hot { background: #e02424; color: #fff; }
+    .tag-new { background: #2ecc71; color: #000; }
+    .tag-poll { background: #9b59b6; color: #fff; }
+
+    /* ─── POST ─── */
+    .post-form {
+      display: flex; gap: 8px; margin-bottom: 20px;
+    }
+    .post-form input {
+      flex: 1; padding: 10px; background: #111; border: 1px solid #333;
+      border-radius: 6px; color: #fff; font-size: 13px;
+    }
+    .post-form button {
+      padding: 10px 16px; background: #ff7a00; color: #000; border: 0;
+      border-radius: 6px; font-weight: 900; font-size: 12px; text-transform: uppercase; cursor: pointer;
+    }
+
+    /* ─── POLLS ─── */
+    .poll-card {
+      background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 10px;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .poll-card h3 { color: #ff7a00; font-size: 16px; margin-bottom: 4px; }
+    .poll-card .poll-date { font-size: 11px; color: #555; margin-bottom: 14px; }
+    .poll-option {
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+      background: #111; border: 1px solid #1a1a1a; border-radius: 6px;
+      margin-bottom: 6px; cursor: pointer; transition: border-color 0.2s; position: relative;
+    }
+    .poll-option:hover { border-color: #ff7a00; }
+    .poll-option.voted { border-color: #2ecc71; }
+    .poll-option .bar {
+      position: absolute; left: 0; top: 0; bottom: 0; background: rgba(255,122,0,0.1);
+      border-radius: 5px; transition: width 0.5s ease;
+    }
+    .poll-option .text { position: relative; z-index: 1; flex: 1; font-size: 13px; }
+    .poll-option .pct { position: relative; z-index: 1; font-size: 12px; font-weight: 700; color: #ff7a00; min-width: 40px; text-align: right; }
+    .poll-option .rank { position: relative; z-index: 1; font-size: 11px; color: #888; min-width: 20px; }
+
+    /* ─── TOP 100 / HOTTEST ─── */
+    .list-card {
+      background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 10px;
+      padding: 16px; margin-bottom: 12px;
+    }
+    .list-card h3 { color: #ff7a00; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .list-card .list-author { font-size: 11px; color: #666; }
+    .list-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px;
+      border-bottom: 1px solid #111; font-size: 13px;
+    }
+    .list-item:last-child { border-bottom: 0; }
+    .list-item .rank-num { font-weight: 900; color: #ff7a00; min-width: 24px; }
+    .list-item .url { flex: 1; color: #ccc; word-break: break-all; }
+    .list-item .clicks { font-size: 11px; color: #555; }
+    .list-item .upvote { cursor: pointer; font-size: 14px; }
+    .list-item .upvote:hover { color: #2ecc71; }
+
+    /* ─── CREATE LIST ─── */
+    .create-list {
+      background: #0a0a0a; border: 2px dashed #ff7a00; border-radius: 10px;
+      padding: 20px; margin-bottom: 20px;
+    }
+    .create-list h3 { color: #ff7a00; font-size: 14px; margin-bottom: 10px; }
+    .create-list input, .create-list textarea {
+      width: 100%; padding: 8px; background: #111; border: 1px solid #333;
+      border-radius: 4px; color: #fff; font-size: 13px; margin-bottom: 8px;
+    }
+    .create-list textarea { min-height: 80px; resize: vertical; }
+    .create-list button {
+      padding: 10px 20px; background: #ff7a00; color: #000; border: 0;
+      border-radius: 6px; font-weight: 900; text-transform: uppercase; cursor: pointer;
+    }
+
+    /* ─── THREAD VIEW ─── */
+    .thread-view { display: none; }
+    .thread-view.active { display: block; }
+    .thread-view .back-btn { font-size: 12px; color: #ff7a00; cursor: pointer; margin-bottom: 12px; display: inline-block; }
+    .thread-view h2 { font-size: 18px; margin-bottom: 8px; }
+    .thread-view .thread-meta { font-size: 12px; color: #666; margin-bottom: 16px; }
+    .reply {
+      padding: 12px; background: #0a0a0a; border: 1px solid #1a1a1a;
+      border-radius: 6px; margin-bottom: 8px;
+    }
+    .reply .reply-user { font-weight: 700; font-size: 12px; color: #ff7a00; }
+    .reply .reply-tier { font-size: 10px; color: #888; margin-left: 6px; }
+    .reply .reply-text { font-size: 13px; color: #ccc; margin-top: 4px; }
+    .reply .reply-time { font-size: 10px; color: #444; margin-top: 4px; }
+
+    .empty { text-align: center; color: #444; padding: 40px; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<!-- ─── AUTH GATE ─── -->
+<div id="authGate">
+  <div class="auth-box">
+    <h1>🔒 Members Only</h1>
+    <p>Premium account required to access the forum</p>
+    <div id="loginForm">
+      <input id="authUser" type="text" placeholder="Username" autocomplete="username" />
+      <input id="authPass" type="password" placeholder="Password" autocomplete="current-password" />
+      <button id="authLoginBtn">Login</button>
+      <button id="authToggle" class="toggle">No account? Register</button>
+    </div>
+    <div id="registerForm" style="display:none;">
+      <input id="regUser" type="text" placeholder="Choose Username" />
+      <input id="regEmail" type="email" placeholder="Email" />
+      <input id="regPass" type="password" placeholder="Password" />
+      <input id="regConfirm" type="password" placeholder="Confirm Password" />
+      <button id="authRegBtn">Create Account</button>
+      <button id="authToggle2" class="toggle">Have an account? Login</button>
+    </div>
+    <div class="msg" id="authMsg"></div>
+    <p style="margin-top:16px;"><a href="/" style="font-size:12px;">← Back to VPN Browser</a></p>
+  </div>
+</div>
+
+<!-- ─── FORUM ─── -->
+<div id="forumApp" style="display:none;">
+  <div class="forum-header">
+    <h2>💬 Members Forum</h2>
+    <div class="user-info">
+      <b id="forumUser"></b><span id="forumTier"></span><span class="socks-badge" id="forumSocks"></span>
+      <a href="/" style="margin-left:16px;">← VPN Browser</a>
+      <a href="#" id="forumLogout">Logout</a>
+    </div>
+  </div>
+
+  <div class="forum-nav">
+    <button class="active" data-tab="threads">📋 Threads</button>
+    <button data-tab="polls">📊 Daily Polls</button>
+    <button data-tab="lists">🏆 Top 100</button>
+    <button data-tab="hottest">🔥 Hottest</button>
+    <button data-tab="crates">🎰 Crates</button>
+  </div>
+
+  <div class="forum-content">
+    <!-- ─── THREADS ─── -->
+    <div class="section active" id="tab-threads">
+      <div class="post-form">
+        <input id="newThreadTitle" placeholder="Start a new thread..." />
+        <button id="newThreadBtn">Post</button>
+      </div>
+      <div class="thread-list" id="threadList"></div>
+    </div>
+
+    <!-- ─── POLLS ─── -->
+    <div class="section" id="tab-polls">
+      <h3 style="color:#ff7a00;margin-bottom:16px;">📊 Daily URL Polls</h3>
+      <p style="color:#666;font-size:12px;margin-bottom:16px;">Vote on the most popular URLs from today's traffic. Polls reset daily.</p>
+      <div id="pollList"></div>
+    </div>
+
+    <!-- ─── TOP 100 ─── -->
+    <div class="section" id="tab-lists">
+      <div class="create-list">
+        <h3>➕ Create a Top 100 List</h3>
+        <input id="listName" placeholder="List name (e.g. 'Best Tube Sites')" />
+        <textarea id="listUrls" placeholder="Paste URLs, one per line..."></textarea>
+        <button id="createListBtn">Create List</button>
+      </div>
+      <div id="topLists"></div>
+    </div>
+
+    <!-- ─── HOTTEST ─── -->
+    <div class="section" id="tab-hottest">
+      <h3 style="color:#e02424;margin-bottom:16px;">🔥 Hottest Right Now</h3>
+      <p style="color:#666;font-size:12px;margin-bottom:16px;">Most clicked URLs in the last 24 hours, updated in real-time.</p>
+      <div id="hottestList"></div>
+    </div>
+
+    <!-- ─── THREAD VIEW ─── -->
+    <div class="thread-view" id="threadView">
+      <span class="back-btn" id="backToThreads">← Back to Threads</span>
+      <h2 id="threadTitle"></h2>
+      <div class="thread-meta" id="threadMeta"></div>
+      <div id="threadReplies"></div>
+      <div class="post-form" style="margin-top:16px;">
+        <input id="replyText" placeholder="Write a reply..." />
+        <button id="replyBtn">Reply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── AUTH ───
+const TIER_LABELS = {
+  free:'Free', daily:'Daily ⚡', monthly:'Monthly 🔥', quarterly:'Quarterly 💰',
+  lifetime:'Lifetime 👑', socks:'Socks 🧦', jessie:'Jessie 👃'
+};
+
+function getAuth() {
+  try {
+    return {
+      user: localStorage.getItem('forumUser'),
+      tier: localStorage.getItem('userTier') || 'free',
+      hasSocks: localStorage.getItem('hasSocks') === '1',
+      premium: localStorage.getItem('premium') === '1',
+    };
+  } catch(_) { return { user: null }; }
+}
+
+function checkAuth() {
+  const auth = getAuth();
+  if (auth.user && auth.premium) {
+    document.getElementById('authGate').classList.add('hidden');
+    document.getElementById('forumApp').style.display = 'block';
+    document.getElementById('forumUser').textContent = auth.user;
+    document.getElementById('forumTier').textContent = ' · ' + (TIER_LABELS[auth.tier] || auth.tier);
+    if (auth.hasSocks) document.getElementById('forumSocks').textContent = ' 🧦';
+  }
+}
+
+document.getElementById('authLoginBtn').onclick = () => {
+  const user = document.getElementById('authUser').value.trim();
+  const pass = document.getElementById('authPass').value;
+  if (!user || !pass) { document.getElementById('authMsg').textContent = 'Fill in all fields'; return; }
+  // Check if user has premium (localStorage check)
+  if (localStorage.getItem('premium') === '1' || localStorage.getItem('forumUser_' + user)) {
+    localStorage.setItem('forumUser', user);
+    localStorage.setItem('forumUser_' + user, '1');
+    checkAuth();
+    loadAll();
+  } else {
+    document.getElementById('authMsg').textContent = 'Premium account required. Buy premium first.';
+  }
+};
+
+document.getElementById('authRegBtn').onclick = () => {
+  const user = document.getElementById('regUser').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const confirm = document.getElementById('regConfirm').value;
+  if (!user || !email || !pass) { document.getElementById('authMsg').textContent = 'Fill in all fields'; return; }
+  if (pass !== confirm) { document.getElementById('authMsg').textContent = 'Passwords do not match'; return; }
+  localStorage.setItem('forumUser', user);
+  localStorage.setItem('forumUser_' + user, '1');
+  checkAuth();
+  loadAll();
+};
+
+document.getElementById('authToggle').onclick = () => {
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('registerForm').style.display = 'block';
+};
+document.getElementById('authToggle2').onclick = () => {
+  document.getElementById('registerForm').style.display = 'none';
+  document.getElementById('loginForm').style.display = 'block';
+};
+
+document.getElementById('forumLogout').onclick = (e) => {
+  e.preventDefault();
+  localStorage.removeItem('forumUser');
+  location.reload();
+};
+
+// ─── TABS ───
+document.querySelectorAll('.forum-nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.forum-nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    document.getElementById('threadView').classList.remove('active');
+  });
+});
+
+// ─── API HELPERS ───
+async function api(method, url, body) {
+  const opt = { method, headers: {} };
+  if (body) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+  const r = await fetch(url, opt);
+  return r.json();
+}
+
+// ─── THREADS ───
+let currentThreadId = null;
+
+async function loadThreads() {
+  const data = await api('GET', '/api/forum/threads');
+  const list = document.getElementById('threadList');
+  list.innerHTML = '';
+  if (!data.length) { list.innerHTML = '<div class="empty">No threads yet. Start one!</div>'; return; }
+  data.forEach(t => {
+    const div = document.createElement('div');
+    div.className = 'thread';
+    div.innerHTML = `
+      <div class="votes"><div class="count">${t.votes || 0}</div><div class="label">votes</div></div>
+      <div class="info">
+        <h3>${esc(t.title)}</h3>
+        <div class="meta">by <span class="tier">${esc(t.user)}</span> · ${timeAgo(t.ts)} · ${(t.replies||0)} replies</div>
+      </div>
+      ${t.hot ? '<span class="tag tag-hot">Hot</span>' : ''}
+    `;
+    div.onclick = () => openThread(t.id);
+    list.appendChild(div);
+  });
+}
+
+async function openThread(id) {
+  currentThreadId = id;
+  const data = await api('GET', '/api/forum/threads/' + id);
+  document.getElementById('threadTitle').textContent = data.title;
+  document.getElementById('threadMeta').textContent = `by ${data.user} · ${timeAgo(data.ts)} · ${(data.replies||[]).length} replies`;
+  const replies = document.getElementById('threadReplies');
+  replies.innerHTML = '';
+  (data.replies || []).forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'reply';
+    div.innerHTML = `
+      <span class="reply-user">${esc(r.user)}</span>
+      <span class="reply-tier">${TIER_LABELS[r.tier] || r.tier}</span>
+      ${r.hasSocks ? '<span style="font-size:10px;">🧦</span>' : ''}
+      <div class="reply-text">${esc(r.text)}</div>
+      <div class="reply-time">${timeAgo(r.ts)}</div>
+    `;
+    replies.appendChild(div);
+  });
+  document.getElementById('tab-threads').style.display = 'none';
+  document.getElementById('threadView').classList.add('active');
+}
+
+document.getElementById('backToThreads').onclick = () => {
+  document.getElementById('tab-threads').style.display = 'block';
+  document.getElementById('threadView').classList.remove('active');
+  currentThreadId = null;
+};
+
+document.getElementById('newThreadBtn').onclick = async () => {
+  const title = document.getElementById('newThreadTitle').value.trim();
+  if (!title) return;
+  const auth = getAuth();
+  await api('POST', '/api/forum/threads', { title, user: auth.user, tier: auth.tier, hasSocks: auth.hasSocks });
+  document.getElementById('newThreadTitle').value = '';
+  loadThreads();
+};
+
+document.getElementById('replyBtn').onclick = async () => {
+  const text = document.getElementById('replyText').value.trim();
+  if (!text || !currentThreadId) return;
+  const auth = getAuth();
+  await api('POST', `/api/forum/threads/${currentThreadId}/reply`, { text, user: auth.user, tier: auth.tier, hasSocks: auth.hasSocks });
+  document.getElementById('replyText').value = '';
+  openThread(currentThreadId);
+};
+
+// ─── POLLS ───
+async function loadPolls() {
+  const data = await api('GET', '/api/forum/polls');
+  const list = document.getElementById('pollList');
+  list.innerHTML = '';
+  if (!data.length) { list.innerHTML = '<div class="empty">No polls today. Check back later!</div>'; return; }
+  data.forEach(poll => {
+    const totalVotes = poll.options.reduce((s, o) => s + o.votes, 0);
+    const card = document.createElement('div');
+    card.className = 'poll-card';
+    card.innerHTML = `<h3>${esc(poll.question)}</h3><div class="poll-date">${poll.date}</div>`;
+    poll.options.sort((a, b) => b.votes - a.votes).forEach((opt, i) => {
+      const pct = totalVotes ? Math.round(opt.votes / totalVotes * 100) : 0;
+      const optDiv = document.createElement('div');
+      optDiv.className = 'poll-option';
+      optDiv.innerHTML = `
+        <div class="bar" style="width:${pct}%"></div>
+        <span class="rank">#${i+1}</span>
+        <span class="text">${esc(opt.text)}</span>
+        <span class="pct">${pct}%</span>
+      `;
+      optDiv.onclick = async () => {
+        await api('POST', '/api/forum/polls/' + poll.id + '/vote', { option: opt.text });
+        loadPolls();
+      };
+      card.appendChild(optDiv);
+    });
+    list.appendChild(card);
+  });
+}
+
+// ─── TOP 100 LISTS ───
+async function loadLists() {
+  const data = await api('GET', '/api/forum/lists');
+  const container = document.getElementById('topLists');
+  container.innerHTML = '';
+  if (!data.length) { container.innerHTML = '<div class="empty">No lists created yet. Be the first!</div>'; return; }
+  data.forEach(list => {
+    const card = document.createElement('div');
+    card.className = 'list-card';
+    card.innerHTML = `<h3>🏆 ${esc(list.name)} <span class="list-author">by ${esc(list.user)}</span></h3>`;
+    (list.items || []).slice(0, 100).forEach((item, i) => {
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'list-item';
+      itemDiv.innerHTML = `
+        <span class="rank-num">#${i+1}</span>
+        <span class="url">${esc(item.url)}</span>
+        <span class="clicks">${item.clicks || 0} clicks</span>
+        <span class="upvote" data-list="${list.id}" data-idx="${i}">▲</span>
+      `;
+      card.appendChild(itemDiv);
+    });
+    container.appendChild(card);
+  });
+
+  // Upvote handlers
+  container.querySelectorAll('.upvote').forEach(btn => {
+    btn.onclick = async () => {
+      await api('POST', `/api/forum/lists/${btn.dataset.list}/upvote`, { idx: parseInt(btn.dataset.idx) });
+      loadLists();
+    };
+  });
+}
+
+document.getElementById('createListBtn').onclick = async () => {
+  const name = document.getElementById('listName').value.trim();
+  const urlsRaw = document.getElementById('listUrls').value.trim();
+  if (!name || !urlsRaw) return;
+  const urls = urlsRaw.split('\n').map(u => u.trim()).filter(Boolean);
+  const auth = getAuth();
+  await api('POST', '/api/forum/lists', { name, items: urls.map(u => ({ url: u, clicks: 0 })), user: auth.user });
+  document.getElementById('listName').value = '';
+  document.getElementById('listUrls').value = '';
+  loadLists();
+};
+
+// ─── HOTTEST ───
+async function loadHottest() {
+  const data = await api('GET', '/api/forum/hottest');
+  const container = document.getElementById('hottestList');
+  container.innerHTML = '';
+  if (!data.length) { container.innerHTML = '<div class="empty">No data yet. Start browsing!</div>'; return; }
+  const card = document.createElement('div');
+  card.className = 'list-card';
+  card.innerHTML = '<h3>🔥 Most Clicked in Last 24h</h3>';
+  data.slice(0, 100).forEach((item, i) => {
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'list-item';
+    itemDiv.innerHTML = `
+      <span class="rank-num" style="color:${i < 3 ? '#e02424' : '#ff7a00'}">#${i+1}</span>
+      <span class="url">${esc(item.url)}</span>
+      <span class="clicks">${item.clicks} clicks</span>
+    `;
+    card.appendChild(itemDiv);
+  });
+  container.appendChild(card);
+}
+
+// ─── HELPERS ───
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
+  if (diff < 86400000) return Math.floor(diff/3600000) + 'h ago';
+  return Math.floor(diff/86400000) + 'd ago';
+}
+
+// ─── LOAD ALL ───
+function loadAll() { loadThreads(); loadPolls(); loadLists(); loadHottest(); }
+checkAuth();
+if (getAuth().user) loadAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,412 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: #000;
+  color: #fff;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255,122,0,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(255,122,0,0.03) 0%, transparent 50%);
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.ad-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #777;
+  background: #080808;
+  border: 0;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  transition: background 0.2s ease;
+  overflow: hidden;
+}
+
+.ad-slot:hover {
+  background: #0f0f0f;
+}
+
+.snowflakes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 20px;
+  color: #fff;
+  opacity: 1;
+  animation: snowScroll 4s linear infinite;
+}
+
+@keyframes snowScroll {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0%); }
+}
+
+.ad-top {
+  height: auto;
+  padding: 0;
+  background: transparent;
+  line-height: 0;
+  overflow: hidden;
+  display: block;
+}
+
+.side-ad-img {
+  display: block;
+  width: 80px;
+  height: 100vh;
+  object-fit: cover;
+  object-position: center;
+}
+
+.top-banner {
+  display: block;
+  width: 100vw;
+  height: auto;
+  object-fit: cover;
+  object-position: center;
+  margin-left: calc(-50vw + 50%);
+}
+.ad-bottom { height: 30px; }
+
+:root {
+  /* how far the toolbar/browser bar is lifted up onto the banner image (px) */
+  --bar-lift: 100px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #000;
+  border-bottom: 1px solid #1a1a1a;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  margin-top: calc(-1 * var(--bar-lift));
+  position: relative;
+  z-index: 5;
+}
+
+.brand {
+  position: relative;
+  font-weight: 900;
+  color: #fff;
+  white-space: nowrap;
+  font-size: 20px;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 18px rgba(255,122,0,0.25);
+}
+.brand > #menuBtn {
+  position: relative;
+  z-index: 2;
+}
+.brand .menu-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: #0a0a0a;
+  border: 1px solid #1a1a1a;
+  border-radius: 0;
+  min-width: 220px;
+  z-index: 9999;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+}
+.brand .menu-dropdown.open {
+  display: block;
+}
+
+.nav {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+#country {
+  background: #ff7a00;
+  color: #000;
+  border: 0;
+  border-radius: 3px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: filter 0.2s ease;
+}
+
+#country:hover { filter: brightness(0.92); }
+
+#vpnMode {
+  background: #ff7a00;
+  color: #000;
+  border: 0;
+  border-radius: 3px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: filter 0.2s ease;
+}
+
+#vpnMode:hover { filter: brightness(0.92); }
+
+#localProxy {
+  flex: 1;
+  background: #111;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+#url {
+  flex: 1;
+  background: #111;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+button {
+  background: #ff7a00;
+  color: #000;
+  border: 0;
+  border-radius: 3px;
+  padding: 8px 14px;
+  font-weight: 900;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 0 0 rgba(255,122,0,0);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+button:hover { background: #e56d00; box-shadow: 0 0 12px rgba(255,122,0,0.25); }
+
+#fsBtn {
+  background: #ff7a00;
+  color: #000;
+  border: 0;
+  border-radius: 3px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  box-shadow: 0 0 0 0 rgba(255,122,0,0);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+#fsBtn:hover { background: #e56d00; box-shadow: 0 0 12px rgba(255,122,0,0.25); }
+
+#menuBtn {
+  background: #ff7a00;
+  color: #000;
+  border: 0;
+  border-radius: 3px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  margin-right: 8px;
+}
+#menuBtn:hover { background: #e56d00; }
+
+.menu-item {
+  display: block;
+  width: 100%;
+  background: transparent;
+  color: #fff;
+  border: 0;
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-bottom: 1px solid #111;
+}
+
+.menu-item:hover {
+  background: #111;
+  color: #ff7a00;
+}
+
+.menu-item.heading {
+  color: #888;
+  font-size: 10px;
+  cursor: default;
+  pointer-events: none;
+}
+
+.menu-divider {
+  border-bottom: 1px solid #1a1a1a;
+  margin: 4px 0;
+}
+
+.connection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #aaa;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vpn-note {
+  color: #ff7a00;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #333;
+}
+.dot.connected {
+  background: #ff7a00;
+  box-shadow: 0 0 0 3px rgba(255,122,0,0.3);
+}
+
+.main {
+  display: grid;
+  grid-template-columns: 80px 1fr 80px;
+  gap: 0;
+  padding: 0;
+  min-height: 0;
+}
+
+/* Hardened bar-only browser: side rails + footer are stripped UI */
+
+.left-ads .ad-slot, .right-ads .ad-slot {
+  flex: 1;
+  min-height: 100vh;
+  border-bottom: 1px solid #111;
+}
+
+.ad-left, .ad-right {
+  writing-mode: vertical-rl;
+}
+
+.browser {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid #1a1a1a;
+  border-radius: 0;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 0 30px rgba(0,0,0,0.8);
+}
+
+.browser-bar {
+  padding: 8px 12px;
+  background: #000;
+  border-bottom: 1px solid #1a1a1a;
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+iframe {
+  flex: 1;
+  width: 100%;
+  min-height: calc(100vh - 140px);
+  border: 0;
+  background: #000;
+}
+
+.media-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: #111;
+  border-bottom: 1px solid #333;
+  color: #ff7a00;
+  font-size: 13px;
+}
+.media-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.media-field select {
+  background: #000;
+  color: #ff7a00;
+  border: 1px solid #ff7a00;
+  border-radius: 3px;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+.media-field select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.media-lock {
+  margin-left: auto;
+  color: #ff7a00;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+  .main {
+    grid-template-columns: 1fr;
+  }
+  .left-ads, .right-ads {
+    display: none;
+  }
+  .ad-top { height: 50px; }
+  .ad-bottom { height: 50px; }
+}
+
+/* ─── AD NETWORK SLOTS ──────────────────────────────────────────── */
+#ad-slot-top, #ad-slot-left, #ad-slot-right {
+  position: relative;
+  overflow: hidden;
+}
+#ad-slot-top iframe, #ad-slot-top .trafficstars-zone {
+  display: block;
+  margin: 0 auto;
+}
+#ad-slot-left iframe, #ad-slot-left .trafficstars-zone,
+#ad-slot-right iframe, #ad-slot-right .trafficstars-zone {
+  display: block;
+  width: 100%;
+  min-height: 250px;
+}
+/* Ad network zone containers injected by ad-manager.js */
+.ad-network-zone {
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ad-network-zone iframe {
+  border: 0;
+  max-width: 100%;
+}

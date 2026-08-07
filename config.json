@@ -1,0 +1,111 @@
+{
+  "builtinProxyEnabled": true,
+  "localProxy": "",
+  "vpnMode": "direct",
+  "theme": "default",
+  "bannerImage": "/images/bannerpvpn.png",
+  "adButtons": [
+    {
+      "label": "HOT DEALS",
+      "url": "https://example.com",
+      "free": false
+    },
+    {
+      "label": "FREE",
+      "url": "https://www.pornhub.com",
+      "free": true
+    },
+    {
+      "label": "GO PREMIUM",
+      "url": "https://example.com",
+      "free": false
+    }
+  ],
+  "ads": [
+    {
+      "id": "ad_msfvtsfm",
+      "label": "SPONSOR X",
+      "url": "https://example.com",
+      "image": "",
+      "price": 50,
+      "paid": true,
+      "slot": "footer",
+      "createdAt": 1785921966130
+    },
+    {
+      "id": "ad_msfvtsfx",
+      "label": "PENDING Y",
+      "url": "https://example.com",
+      "image": "",
+      "price": 20,
+      "paid": false,
+      "slot": "footer",
+      "createdAt": 1785921966141
+    },
+    {
+      "id": "ad_msfvv5aw",
+      "label": "VERIFY AD",
+      "url": "https://example.com",
+      "image": "",
+      "price": 10,
+      "paid": true,
+      "slot": "side",
+      "createdAt": 1785922029464
+    },
+    {
+      "id": "ad_msfvvsfs",
+      "label": "VERIFY AD",
+      "url": "https://example.com",
+      "image": "",
+      "price": 10,
+      "paid": true,
+      "slot": "side",
+      "createdAt": 1785922059448
+    },
+    {
+      "id": "ad_msfvys7n",
+      "label": "PAIDVERIFY",
+      "url": "https://example.com",
+      "image": "",
+      "price": 9,
+      "paid": true,
+      "slot": "side",
+      "createdAt": 1785922199123
+    },
+    {
+      "id": "ad_msfvys7y",
+      "label": "UNPAIDVERIFY",
+      "url": "https://example.com",
+      "image": "",
+      "price": 3,
+      "paid": false,
+      "slot": "side",
+      "createdAt": 1785922199134
+    },
+    {
+      "id": "ad_msfw03gh",
+      "label": "PAIDCHK",
+      "url": "https://example.com",
+      "image": "",
+      "price": 9,
+      "paid": true,
+      "slot": "side",
+      "createdAt": 1785922260353
+    },
+    {
+      "id": "ad_msfw03gv",
+      "label": "UNPAIDCHK",
+      "url": "https://example.com",
+      "image": "",
+      "price": 3,
+      "paid": false,
+      "slot": "side",
+      "createdAt": 1785922260367
+    }
+  ],
+  "siteTitle": "SMOKE TEST BROWSER",
+  "maintenanceMode": false,
+  "defaultCountry": "nl",
+  "blocklist": [],
+  "proxyLogEnabled": true
+}

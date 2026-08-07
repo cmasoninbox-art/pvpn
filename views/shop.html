@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PVPN Shop — Crates, Socks & Legendary Items</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #000; color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; min-height: 100vh; }
+    a { color: #ff7a00; text-decoration: none; }
+
+    /* ─── HEADER ─── */
+    .shop-hero {
+      text-align: center; padding: 50px 20px 30px;
+      background: linear-gradient(180deg, rgba(255,122,0,0.08) 0%, transparent 100%);
+    }
+    .shop-hero h1 {
+      font-size: 42px; letter-spacing: 4px; text-transform: uppercase;
+      background: linear-gradient(135deg, #ff7a00, #ffd700);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .shop-hero p { color: #555; font-size: 13px; text-transform: uppercase; letter-spacing: 3px; margin-top: 8px; }
+
+    /* ─── TABS ─── */
+    .shop-nav {
+      display: flex; justify-content: center; gap: 0;
+      border-bottom: 1px solid #1a1a1a; background: #050505;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .shop-nav button {
+      padding: 16px 28px; background: transparent; border: 0;
+      border-bottom: 2px solid transparent; color: #555;
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; cursor: pointer; transition: all 0.2s;
+    }
+    .shop-nav button.active { color: #ff7a00; border-bottom-color: #ff7a00; }
+    .shop-nav button:hover { color: #ff7a00; }
+
+    .shop-section { display: none; max-width: 1100px; margin: 0 auto; padding: 30px 20px 50px; }
+    .shop-section.active { display: block; }
+
+    /* ─── CRATE CARDS ─── */
+    .crates-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .crate-card {
+      position: relative; border-radius: 16px; padding: 28px 24px;
+      text-align: center; overflow: hidden; cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .crate-card:hover { transform: translateY(-6px) scale(1.02); }
+    .crate-card::before {
+      content: ''; position: absolute; inset: 0; border-radius: 16px;
+      padding: 2px; background: linear-gradient(135deg, var(--c1), var(--c2));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+    }
+    .crate-card .crate-glow {
+      position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(circle, var(--glow) 0%, transparent 60%);
+      opacity: 0.15; pointer-events: none;
+      animation: cratePulse 3s ease-in-out infinite alternate;
+    }
+    @keyframes cratePulse { from { opacity: 0.1; transform: scale(0.9); } to { opacity: 0.2; transform: scale(1.1); } }
+
+    .crate-card .crate-icon {
+      font-size: 56px; margin-bottom: 12px;
+      filter: drop-shadow(0 0 20px var(--glow));
+      animation: crateFloat 2s ease-in-out infinite alternate;
+    }
+    @keyframes crateFloat { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+
+    .crate-card .crate-name {
+      font-size: 18px; font-weight: 900; text-transform: uppercase;
+      letter-spacing: 2px; margin-bottom: 4px; color: #fff;
+    }
+    .crate-card .crate-desc {
+      font-size: 12px; color: #888; margin-bottom: 16px;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .crate-card .crate-price {
+      font-size: 36px; font-weight: 900; margin-bottom: 4px;
+      background: linear-gradient(135deg, var(--c1), var(--c2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .crate-card .crate-odds {
+      font-size: 11px; color: #555; margin-bottom: 18px;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .crate-card .crate-buy {
+      display: inline-block; padding: 14px 36px; border: 0;
+      border-radius: 8px; font-size: 14px; font-weight: 900;
+      text-transform: uppercase; letter-spacing: 2px; cursor: pointer;
+      background: linear-gradient(135deg, var(--c1), var(--c2));
+      color: #000; transition: filter 0.2s, transform 0.2s;
+    }
+    .crate-card .crate-buy:hover { filter: brightness(1.15); transform: scale(1.05); }
+
+    /* ─── SOCKS GRID ─── */
+    .socks-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    }
+    @media (max-width: 800px) { .socks-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .sock-card {
+      background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 12px;
+      padding: 24px 16px; text-align: center;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .sock-card:hover { border-color: #ff7a00; transform: translateY(-3px); }
+    .sock-card .sock-icon { font-size: 48px; margin-bottom: 10px; }
+    .sock-card .sock-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .sock-card .sock-desc { font-size: 11px; color: #666; margin-bottom: 12px; line-height: 1.4; }
+    .sock-card .sock-price { font-size: 28px; font-weight: 900; color: #ff7a00; margin-bottom: 14px; }
+    .sock-card .sock-buy {
+      display: block; width: 100%; padding: 12px; background: #ff7a00;
+      color: #000; border: 0; border-radius: 8px; font-weight: 900;
+      font-size: 12px; text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
+    }
+    .sock-card .sock-buy:hover { filter: brightness(1.1); }
+    .sock-card.jessie { border-color: #e02424; }
+    .sock-card.jessie .sock-price { color: #e02424; }
+    .sock-card.jessie .sock-buy { background: #e02424; }
+    .sock-card.coles { border-color: #8B4513; }
+    .sock-card.coles .sock-price { color: #D2691E; }
+    .sock-card.coles .sock-buy { background: #8B4513; color: #fff; }
+
+    /* ─── GENERIC SHOP ITEMS ─── */
+    .items-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .item-card {
+      background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 12px;
+      padding: 24px 16px; text-align: center;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .item-card:hover { border-color: #ff7a00; transform: translateY(-3px); }
+    .item-card .item-icon { font-size: 44px; margin-bottom: 10px; }
+    .item-card .item-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .item-card .item-desc { font-size: 11px; color: #666; margin-bottom: 12px; line-height: 1.4; }
+    .item-card .item-price { font-size: 24px; font-weight: 900; color: #ff7a00; margin-bottom: 14px; }
+    .item-card .item-buy {
+      display: block; width: 100%; padding: 12px; background: #ff7a00;
+      color: #000; border: 0; border-radius: 8px; font-weight: 900;
+      font-size: 12px; text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
+    }
+    .item-card .item-buy:hover { filter: brightness(1.1); }
+    .item-card.legendary { border-color: #ffd700; }
+    .item-card.legendary .item-price { color: #ffd700; }
+    .item-card.legendary .item-buy { background: linear-gradient(135deg, #ffd700, #ff7a00); }
+    .item-card.junk { opacity: 0.7; }
+    .item-card.junk .item-price { color: #555; }
+    .item-card.junk .item-buy { background: #333; color: #888; }
+
+    .back-link { display: block; text-align: center; padding: 30px; color: #ff7a00; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* ─── CRATE SPINNER OVERLAY ─── */
+    #crate-overlay {
+      position: fixed; inset: 0; z-index: 99998; background: rgba(0,0,0,0.95);
+      display: none; align-items: center; justify-content: center; flex-direction: column;
+    }
+    #crate-overlay.active { display: flex; }
+    #spin-strip {
+      position: absolute; width: 100%; transition: transform 4s cubic-bezier(0.15,0.8,0.3,1);
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .spin-item {
+      width: 280px; height: 80px; margin: 8px auto; display: flex; align-items: center;
+      justify-content: center; gap: 12px; background: rgba(255,255,255,0.03);
+      border: 2px solid; border-radius: 10px; font-size: 16px; color: #fff; flex-shrink: 0;
+    }
+    .spin-item .spin-emoji { font-size: 40px; }
+    .spin-item .spin-name { font-weight: 700; }
+    .spin-item .spin-rarity { font-size: 11px; }
+    #winner-card { text-align: center; animation: winnerPop 0.5s ease-out; }
+    @keyframes winnerPop { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+    #fireworks-canvas { position: fixed; inset: 0; z-index: 99999; pointer-events: none; }
+  </style>
+</head>
+<body>
+
+<div class="shop-hero">
+  <h1>🏪 PVPN Shop</h1>
+  <p>Crates, socks, merch & legendary items</p>
+</div>
+
+<div class="shop-nav">
+  <button class="active" data-tab="crates">🎰 Crates</button>
+  <button data-tab="socks">🧦 Socks</button>
+  <button data-tab="merch">🏷️ Merch</button>
+  <button data-tab="legendary">👑 Legendary</button>
+  <button data-tab="junk">🤧 Junk Drawer</button>
+</div>
+
+<!-- ─── CRATES ─── -->
+<div class="shop-section active" id="tab-crates">
+  <div class="crates-grid" id="crateGrid"></div>
+</div>
+
+<!-- ─── SOCKS ─── -->
+<div class="shop-section" id="tab-socks">
+  <div class="socks-grid" id="socksGrid"></div>
+</div>
+
+<!-- ─── MERCH ─── -->
+<div class="shop-section" id="tab-merch">
+  <div class="items-grid" id="merchGrid"></div>
+</div>
+
+<!-- ─── LEGENDARY ─── -->
+<div class="shop-section" id="tab-legendary">
+  <div class="items-grid" id="legendaryGrid"></div>
+</div>
+
+<!-- ─── JUNK DRAWER ─── -->
+<div class="shop-section" id="tab-junk">
+  <div class="items-grid" id="junkGrid"></div>
+</div>
+
+<a href="/" class="back-link">← Back to VPN Browser</a>
+
+<!-- ─── CRATE SPINNER OVERLAY ─── -->
+<div id="crate-overlay">
+  <div id="crate-spinner" style="position:relative;width:320px;height:420px;overflow:hidden;border-radius:14px;border:3px solid #ff7a00;background:#0a0a0a;">
+    <div id="spin-strip"></div>
+  </div>
+  <div id="crate-label" style="margin-top:20px;color:#ff7a00;font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:3px;"></div>
+</div>
+
+<script>
+// ─── CRATE DATA ────────────────────────────────────────────────
+const CRATES = [
+  { id:'bronze',   name:'Bronze Crate',   icon:'📦', price:'$25',    color:'#cd7f32', c1:'#cd7f32', c2:'#8B5A2B', glow:'rgba(205,127,50,0.4)', odds:'50% Common • 25% Uncommon • 15% Rare • 8% Epic • 2% Legendary' },
+  { id:'silver',   name:'Silver Crate',   icon:'📦', price:'$50',    color:'#c0c0c0', c1:'#c0c0c0', c2:'#808080', glow:'rgba(192,192,192,0.4)', odds:'45% Common • 28% Uncommon • 17% Rare • 8% Epic • 2% Legendary' },
+  { id:'gold',     name:'Gold Crate',     icon:'📦', price:'$125',   color:'#ffd700', c1:'#ffd700', c2:'#FFA500', glow:'rgba(255,215,0,0.5)', odds:'35% Common • 30% Uncommon • 20% Rare • 10% Epic • 5% Legendary' },
+  { id:'platinum', name:'Platinum Crate', icon:'📦', price:'$250',   color:'#e5e4e2', c1:'#e5e4e2', c2:'#B0C4DE', glow:'rgba(229,228,226,0.4)', odds:'25% Common • 28% Uncommon • 22% Rare • 15% Epic • 10% Legendary' },
+  { id:'diamond',  name:'Diamond Crate',  icon:'💎', price:'$500',   color:'#b9f2ff', c1:'#00BFFF', c2:'#1E90FF', glow:'rgba(0,191,255,0.5)', odds:'15% Common • 22% Uncommon • 25% Rare • 20% Epic • 18% Legendary' },
+  { id:'ruby',     name:'Ruby Crate',     icon:'❤️', price:'$1,000', color:'#e0115f', c1:'#e0115f', c2:'#FF1493', glow:'rgba(224,17,95,0.5)', odds:'5% Common • 15% Uncommon • 25% Rare • 28% Epic • 27% Legendary' },
+  { id:'obsidian', name:'Obsidian Crate', icon:'🖤', price:'$10,000',color:'#333',    c1:'#9370DB', c2:'#4B0082', glow:'rgba(147,112,219,0.6)', odds:'0% Common • 5% Uncommon • 15% Rare • 30% Epic • 50% Legendary' },
+];
+
+// ─── SOCKS DATA ────────────────────────────────────────────────
+const SOCKS = [
+  { id:'sock_plain', name:'Plain White Socks', icon:'🧦', price:'$10', desc:'A pair of white socks. They exist.', color:'#888' },
+  { id:'sock_orange',name:'VPN Orange Socks',  icon:'🧦', price:'$15', desc:'THE orange socks. Branded. Legendary.', color:'#ff7a00' },
+  { id:'sock_jessie',name:"Jessie's Used Sock", icon:'👃', price:'$1,000', desc:'THE sock. Authenticated. Sealed.', color:'#e02424', jessie:true },
+  { id:'sock_coles', name:"Cole's Dirty Work Socks", icon:'🔨', price:'$500', desc:'Unwashed since 2019. Industrial funk.', color:'#D2691E', coles:true },
+];
+
+// ─── MERCH / LEGENDARY / JUNK ──────────────────────────────────
+const MERCH = [
+  { id:'sticker_basic', name:'PVPN Sticker', icon:'🏷️', price:'$3', desc:'Slap it on your laptop.' },
+  { id:'sticker_holo',  name:'Holographic Sticker', icon:'✨', price:'$5', desc:'It sparkles. It shines.' },
+  { id:'mug',           name:'PVPN Coffee Mug', icon:'☕', price:'$12', desc:'Chipped. "World\'s Okayest Browser".' },
+  { id:'tshirt',        name:'PVPN T-Shirt', icon:'👕', price:'$20', desc:'Black tee. Orange logo.' },
+];
+const LEGENDARY = [
+  { id:'jessie_pair',  name:"Jessie's Sock Pair (Sealed)", icon:'🏆', price:'$500', desc:'Both socks. Matched. Display case.', legendary:true },
+  { id:'gold_condom',  name:'24K Gold Condom', icon:'✨', price:'$200', desc:'Real gold. Never worn. Museum piece.', legendary:true },
+  { id:'vpn_forever',  name:'VPN Forever+ Pass', icon:'💎', price:'$199', desc:'Lifetime premium + all future features.', legendary:true },
+  { id:'jessie_hug',   name:"Jessie's Hug Coupon", icon:'🤗', price:'$999', desc:'One hug from Jessie. Non-transferable.', legendary:true },
+];
+const JUNK = [
+  { id:'tissue', name:'Used Tissue', icon:'🤧', price:'$1', desc:'Gently used. Still damp.', junk:true },
+  { id:'condom', name:'Used Condom', icon:'🩲', price:'$1', desc:'Someone had a good time.', junk:true },
+  { id:'crumbs', name:'Chip Crumbs', icon:'🍟', price:'$1', desc:'Bottom of the bag. Salty.', junk:true },
+  { id:'rubber', name:'Old Rubber Band', icon:'🔗', price:'$1', desc:'Still stretches. Mostly.', junk:true },
+  { id:'usb',    name:'Mystery USB Drive', icon:'💾', price:'$2', desc:"Don't plug it in. Or do.", junk:true },
+  { id:'napkin', name:'Dirty Napkin', icon:'🧻', price:'$1', desc:'Has a small stain.', junk:true },
+];
+
+// ─── RENDER CRATES ─────────────────────────────────────────────
+function renderCrates() {
+  const grid = document.getElementById('crateGrid');
+  CRATES.forEach(crate => {
+    const card = document.createElement('div');
+    card.className = 'crate-card';
+    card.style.cssText = `background:linear-gradient(135deg,rgba(10,10,10,0.95),rgba(20,20,20,0.95));--c1:${crate.c1};--c2:${crate.c2};--glow:${crate.glow};`;
+    card.innerHTML = `
+      <div class="crate-glow"></div>
+      <div class="crate-icon">${crate.icon}</div>
+      <div class="crate-name">${crate.name}</div>
+      <div class="crate-desc">${crate.odds}</div>
+      <div class="crate-price">${crate.price}</div>
+      <button class="crate-buy" data-id="${crate.id}">Open Crate</button>
+    `;
+    grid.appendChild(card);
+    card.querySelector('.crate-buy').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openCrate(crate.id);
+    });
+  });
+}
+
+// ─── RENDER SOCKS ──────────────────────────────────────────────
+function renderSocks() {
+  const grid = document.getElementById('socksGrid');
+  SOCKS.forEach(sock => {
+    const card = document.createElement('div');
+    card.className = 'sock-card' + (sock.jessie ? ' jessie' : '') + (sock.coles ? ' coles' : '');
+    card.innerHTML = `
+      <div class="sock-icon">${sock.icon}</div>
+      <div class="sock-name">${sock.name}</div>
+      <div class="sock-desc">${sock.desc}</div>
+      <div class="sock-price">${sock.price}</div>
+      <button class="sock-buy" data-id="${sock.id}">Buy Now</button>
+    `;
+    grid.appendChild(card);
+    card.querySelector('.sock-buy').addEventListener('click', () => purchaseItem(sock));
+  });
+}
+
+// ─── RENDER GENERIC GRIDS ──────────────────────────────────────
+function renderItems(containerId, items, extraClass) {
+  const grid = document.getElementById(containerId);
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'item-card' + (item[extraClass] ? ' ' + extraClass : '');
+    card.innerHTML = `
+      <div class="item-icon">${item.icon}</div>
+      <div class="item-name">${item.name}</div>
+      <div class="item-desc">${item.desc}</div>
+      <div class="item-price">${item.price}</div>
+      <button class="item-buy" data-id="${item.id}">Buy Now</button>
+    `;
+    grid.appendChild(card);
+    card.querySelector('.item-buy').addEventListener('click', () => purchaseItem(item));
+  });
+}
+
+// ─── PURCHASE ──────────────────────────────────────────────────
+async function purchaseItem(item) {
+  // Check if it's a crate
+  const crate = CRATES.find(c => c.id === item.id);
+  if (crate) { openCrate(crate.id); return; }
+
+  // Map to Stripe tier
+  let tier = item.id;
+  if (item.id === 'sock_jessie') tier = 'jessie';
+  else if (item.id === 'sock_coles') tier = 'coles';
+  else if (item.id === 'sock_orange' || item.id === 'sock_plain') tier = 'socks';
+
+  try {
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier })
+    });
+    const data = await res.json();
+    if (data.url) window.location.href = data.url;
+    else alert('Error: ' + (data.error || 'Failed'));
+  } catch(err) { alert('Network error: ' + err.message); }
+}
+
+// ─── CRATE SPINNING ────────────────────────────────────────────
+const CRATE_ITEMS = [
+  { name:'Used Tissue', emoji:'🤧', rarity:'common', color:'#888' },
+  { name:'Used Condom', emoji:'🩲', rarity:'common', color:'#888' },
+  { name:'One Penny', emoji:'🪙', rarity:'common', color:'#888' },
+  { name:'PVPN Sticker', emoji:'🏷️', rarity:'common', color:'#888' },
+  { name:'Old Rubber Band', emoji:'🔗', rarity:'common', color:'#888' },
+  { name:'Plain White Sock', emoji:'🧦', rarity:'uncommon', color:'#2ecc71' },
+  { name:'VPN 1-Day Pass', emoji:'🔑', rarity:'uncommon', color:'#2ecc71' },
+  { name:'Holographic Sticker', emoji:'✨', rarity:'uncommon', color:'#2ecc71' },
+  { name:'Matched Sock Pair', emoji:'🧦', rarity:'rare', color:'#3498db' },
+  { name:'VPN 7-Day Pass', emoji:'🔑', rarity:'rare', color:'#3498db' },
+  { name:'VPN Orange Socks', emoji:'🧦', rarity:'rare', color:'#3498db' },
+  { name:'Coffee Mug', emoji:'☕', rarity:'rare', color:'#3498db' },
+  { name:"Jessie's Sock (One)", emoji:'👃', rarity:'epic', color:'#9b59b6' },
+  { name:'VPN Lifetime Pass', emoji:'👑', rarity:'epic', color:'#9b59b6' },
+  { name:'Signed Condom', emoji:'✍️', rarity:'epic', color:'#9b59b6' },
+  { name:"Jessie's Sock Pair", emoji:'🏆', rarity:'legendary', color:'#ffd700' },
+  { name:'24K Gold Condom', emoji:'✨', rarity:'legendary', color:'#ffd700' },
+  { name:'VPN Forever+ Pass', emoji:'💎', rarity:'legendary', color:'#ffd700' },
+];
+const RARITY_W = { common:50, uncommon:25, rare:15, epic:8, legendary:2 };
+const BOOST = {
+  bronze:{common:1.2,uncommon:1.0,rare:0.8,epic:0.5,legendary:0.2},
+  silver:{common:1.0,uncommon:1.2,rare:1.0,epic:0.7,legendary:0.3},
+  gold:{common:0.6,uncommon:1.0,rare:1.3,epic:1.2,legendary:0.5},
+  platinum:{common:0.4,uncommon:0.8,rare:1.4,epic:1.5,legendary:0.7},
+  diamond:{common:0.3,uncommon:0.7,rare:1.2,epic:1.5,legendary:1.0},
+  ruby:{common:0.1,uncommon:0.4,rare:1.0,epic:1.8,legendary:1.5},
+  obsidian:{common:0.0,uncommon:0.1,rare:0.5,epic:2.0,legendary:3.0},
+};
+function rollItem(tier) {
+  const b = BOOST[tier] || BOOST.bronze;
+  let total=0, w={};
+  for(const [r,base] of Object.entries(RARITY_W)){ w[r]=base*(b[r]||1); total+=w[r]; }
+  let roll=Math.random()*total, chosen='common';
+  for(const [r,weight] of Object.entries(w)){ roll-=weight; if(roll<=0){chosen=r;break;} }
+  const pool=CRATE_ITEMS.filter(i=>i.rarity===chosen);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function openCrate(tier) {
+  const crate = CRATES.find(c=>c.id===tier);
+  if(!crate) return;
+  const won = rollItem(tier);
+  const overlay = document.getElementById('crate-overlay');
+  const strip = document.getElementById('spin-strip');
+  overlay.classList.add('active');
+  document.getElementById('crate-label').textContent = crate.icon + ' ' + crate.name;
+  document.getElementById('crate-label').style.color = crate.color;
+  strip.innerHTML = '';
+  strip.style.transition = 'none';
+  strip.style.transform = 'translateY(0)';
+  const all = [];
+  for(let i=0;i<29;i++){ const pool=CRATE_ITEMS.filter(x=>x!==won); all.push(pool[Math.floor(Math.random()*pool.length)]); }
+  all.push(won);
+  all.forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'spin-item';
+    d.style.borderColor = item.color;
+    d.innerHTML = `<span class="spin-emoji">${item.emoji}</span><span><span class="spin-name">${item.name}</span><br/><span class="spin-rarity" style="color:${item.color}">${item.rarity}</span></span>`;
+    strip.appendChild(d);
+  });
+  const h=96, off=-((all.length-1)*h);
+  requestAnimationFrame(()=>{ strip.style.transition='transform 4s cubic-bezier(0.15,0.8,0.3,1)'; strip.style.transform=`translateY(${off}px)`; });
+  setTimeout(()=>{
+    overlay.innerHTML = `<div id="winner-card">
+      <div style="font-size:80px;margin-bottom:10px;filter:drop-shadow(0 0 20px ${won.color});">${won.emoji}</div>
+      <div style="font-size:12px;color:${won.color};text-transform:uppercase;letter-spacing:3px;margin-bottom:6px;">${won.rarity}</div>
+      <div style="font-size:24px;font-weight:900;color:#fff;margin-bottom:8px;">${won.name}</div>
+      <button onclick="document.getElementById('crate-overlay').classList.remove('active');location.reload();" style="background:${won.color};color:#000;border:0;padding:12px 28px;border-radius:6px;font-weight:900;text-transform:uppercase;cursor:pointer;font-size:14px;">Claim Prize</button>
+    </div>`;
+    fireworks(won.color,3000);
+  },4500);
+}
+
+// ─── FIREWORKS ─────────────────────────────────────────────────
+function fireworks(color,dur){
+  const c=document.createElement('canvas');c.id='fireworks-canvas';document.body.appendChild(c);
+  const ctx=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;
+  const p=[];const cols=[color,'#fff','#ff7a00','#ffd700','#ff4444','#44ff44'];
+  for(let i=0;i<8;i++){setTimeout(()=>{const cx=Math.random()*c.width,cy=Math.random()*c.height*0.6;
+    for(let j=0;j<60;j++){const a=Math.random()*Math.PI*2,s=2+Math.random()*6;
+      p.push({x:cx,y:cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,decay:0.01+Math.random()*0.02,color:cols[Math.floor(Math.random()*cols.length)],size:2+Math.random()*3});}
+  },i*(dur/8));}
+  function anim(){ctx.clearRect(0,0,c.width,c.height);for(let i=p.length-1;i>=0;i--){const x=p[i];x.x+=x.vx;x.y+=x.vy;x.vy+=0.05;x.life-=x.decay;if(x.life<=0){p.splice(i,1);continue;}ctx.globalAlpha=x.life;ctx.fillStyle=x.color;ctx.beginPath();ctx.arc(x.x,x.y,x.size*x.life,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;if(p.length>0)requestAnimationFrame(anim);else c.remove();}
+  anim();
+}
+
+// ─── TABS ──────────────────────────────────────────────────────
+document.querySelectorAll('.shop-nav button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.shop-nav button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.shop-section').forEach(s=>s.classList.remove('active'));
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ─── INIT ──────────────────────────────────────────────────────
+renderCrates();
+renderSocks();
+renderItems('merchGrid', MERCH);
+renderItems('legendaryGrid', LEGENDARY, 'legendary');
+renderItems('junkGrid', JUNK, 'junk');
+</script>
+</body>
+</html>

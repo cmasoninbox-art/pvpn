@@ -1,0 +1,20 @@
+services:
+  vpn-browser:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: vpn-browser:latest
+    container_name: vpn-browser
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      # OVERRIDE these before going public:
+      ADMIN_USER: ${ADMIN_USER:-Smoke}
+      ADMIN_PASS: ${ADMIN_PASS:-aimadness}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-before-public}
+    volumes:
+      - ../config.json:/app/config.json
+      - ../public/images/uploads:/app/public/images/uploads
