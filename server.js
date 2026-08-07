@@ -783,8 +783,37 @@ const fullPageProxyHandler = async (req, res) => {
       // Inject <base> tag so relative URLs resolve through the proxy
       body = body.replace(/<head([^>]*)>/i, `<head$1><base href="${proxyBase}" target="_self">`);
 
-      // Inject toolbar at top of <body>
-      const toolbar = `
+      const isEmbedded = req.query.embedded === '1';
+
+      if (isEmbedded) {
+        // ── EMBEDDED MODE (inside our iframe) ──────────────────────
+        // No toolbar (parent has one). Inject anti-bust so the framed
+        // page can't navigate to the real domain.  All URLs are already
+        // rewritten to /go?url=… so navigation stays same-origin.
+        const antiBust = `<script>(function(){
+try{
+  var _self=window.self;
+  Object.defineProperty(window,'top',{get:function(){return _self;},configurable:false});
+  Object.defineProperty(window,'parent',{get:function(){return _self;},configurable:false});
+  Object.defineProperty(window,'frameElement',{get:function(){return null;},configurable:false});
+  try{window.top=_self;}catch(e){}
+  try{window.parent=_self;}catch(e){}
+  try{window.frameElement=null;}catch(e){}
+  function blocked(v){if(!v)return false;var s=String(v);if(s.indexOf('pornhub')!==-1)return true;try{var u=new URL(s,window.location.href);return u.hostname!==window.location.hostname;}catch(_){return false;}}
+  var LP=(window.location&&Object.getPrototypeOf(window.location))||(window.Location&&window.Location.prototype);
+  if(LP){try{var _h=Object.getOwnPropertyDescriptor(LP,'href');Object.defineProperty(LP,'href',{get:function(){return _h?_h.get.call(this):'';},set:function(v){if(blocked(v))return;try{_h.set.call(this,v);}catch(e){}},configurable:true});}catch(e){}try{var _r=LP.replace;LP.replace=function(v){if(blocked(v))return;return _r.apply(this,arguments);};}catch(e){}try{var _a=LP.assign;LP.assign=function(v){if(blocked(v))return;return _a.apply(this,arguments);};}catch(e){}}
+  try{var _dl=document.location;Object.defineProperty(document,'location',{get:function(){return _dl;},set:function(v){if(blocked(v))return;},configurable:true});}catch(e){}
+  try{var _open=window.open.bind(window);window.open=function(u,t,f){if(t==='_parent'||t==='_top'||(t==='_blank'&&blocked(u)))t='_self';if(blocked(u))return null;return _open(u,t,f);};}catch(e){}
+  var _push=history.pushState,_rpl=history.replaceState;function scrub(u){if(u&&String(u).indexOf('pornhub')!==-1)return;return u;}try{history.pushState=function(a,t,u){return _push.call(history,a,t,scrub(u));};}catch(e){}try{history.replaceState=function(a,t,u){return _rpl.call(history,a,t,scrub(u));};}catch(e){}
+  var mo=new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n&&n.tagName==='META'&&n.httpEquiv&&/refresh/i.test(n.httpEquiv)){if(n.content&&/https?:\\/\\//i.test(n.content)&&!/\\/go\\?url=/.test(n.content)){n.remove();}}});});});try{mo.observe(document.documentElement,{childList:true,subtree:true});}catch(e){}
+  document.querySelectorAll('meta[http-equiv="refresh"]').forEach(function(m){if(m.content&&/https?:\\/\\//i.test(m.content)&&!/\\/go\\?url=/.test(m.content)){m.remove();}});
+  document.addEventListener('contextmenu',function(e){e.preventDefault();return false;});
+}catch(e){}\n})();</script>`;
+        body = body.replace(/<head([^>]*)>/i, `<head$1>${antiBust}`);
+      } else {
+        // ── STANDALONE MODE (full page) ────────────────────────────
+        // Inject toolbar at top of <body>
+        const toolbar = `
 <style>
 #vp-toolbar{position:fixed;top:0;left:0;right:0;z-index:99999;background:#000;border-bottom:2px solid #ff7a00;padding:6px 10px;display:flex;gap:8px;align-items:center;font-family:Arial,sans-serif;font-size:13px}
 #vp-toolbar input{flex:1;background:#111;color:#fff;border:1px solid #333;padding:6px 10px;border-radius:3px;font-size:13px}
@@ -802,15 +831,22 @@ body{margin-top:38px!important}
   <button onclick="go()">Go</button>
 </div>
 <script>
-function go(){var u=document.getElementById('vp-url').value.trim();if(u)location.href='/go?url='+encodeURIComponent(/^https?:\\/\\//i.test(u)?u:'https://'+u);}
+function go(){var u=document.getElementById('vp-url').value.trim();if(u)location.href='/go?url='+encodeURIComponent(/^https?:\\\\/\\\\//i.test(u)?u:'https://'+u);}
 </script>`;
-      body = body.replace(/<body([^>]*)>/i, `<body$1>${toolbar}`);
+        body = body.replace(/<body([^>]*)>/i, `<body$1>${toolbar}`);
+      }
 
       res.set('Content-Type', 'text/html');
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
       res.set('Access-Control-Allow-Origin', '*');
+      // Strip headers that would block iframe embedding
+      res.removeHeader('x-frame-options');
+      res.removeHeader('x-content-type-options');
+      if (isEmbedded) {
+        res.set('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'self'; default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: *");
+      }
       res.send(body + enforcement);
       return;
     }

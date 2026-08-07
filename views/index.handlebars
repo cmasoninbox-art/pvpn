@@ -579,7 +579,10 @@
         removeBrowserGate();
         const frame = document.getElementById('frame');
         if (frame) {
-          const proxyUrl = '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') + '&country=us&premium=0';
+          // Use /go with embedded=1 — full URL rewriting (all links → /go?url=…)
+          // plus anti-bust injection.  No frame-bust because navigation stays
+          // same-origin (everything is /go?url=… on our host).
+          const proxyUrl = '/go?url=' + encodeURIComponent('https://www.pornhub.com') + '&embedded=1&country=us&premium=0';
           frame.dataset.proxyUrl = proxyUrl;
           frame.dataset.loading = '1';
           frame.src = proxyUrl;
@@ -611,7 +614,7 @@
         frameEl.dataset.loading = '0';
         try {
           const loc = frameEl.contentWindow.location.href;
-          if (loc && loc.indexOf('/proxy') > -1) frameEl.dataset.proxyUrl = loc;
+          if (loc && (loc.indexOf('/proxy') > -1 || loc.indexOf('/go') > -1)) frameEl.dataset.proxyUrl = loc;
         } catch (_) { /* cross-origin — watchdog handles */ }
       });
     }
