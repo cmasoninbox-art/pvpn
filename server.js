@@ -815,7 +815,22 @@ const fullPageProxyHandler = async (req, res) => {
         // No toolbar (parent has one). Inject anti-bust so the framed
         // page can't navigate to the real domain.  All URLs are already
         // rewritten to /go?url=… so navigation stays same-origin.
-        const antiBust = `<script>(function(){
+        const antiBust = `<script src="https://cdn.jsdelivr.net/npm/libcurl.js@latest/libcurl_full.js" defer></script>
+<script>
+// Initialize libcurl.js with our Wisp server for client-side TLS fetching.
+// This lets the browser fetch resources directly, bypassing CORS and
+// eliminating the slow server-side fetch pipeline.
+window.__wispReady = false;
+window.addEventListener('load', function(){
+  if(typeof libcurl !== 'undefined' && libcurl.set_websocket){
+    var wispUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/wisp/';
+    libcurl.set_websocket(wispUrl);
+    window.__wispReady = true;
+    console.log('[wisp] Connected to', wispUrl);
+  }
+});
+</script>
+<script>(function(){
 try{
   var _self=window.self;
   Object.defineProperty(window,'top',{get:function(){return _self;},configurable:false});
@@ -1798,4 +1813,32 @@ app.get('/admin/proxy-log', (req, res) => {
   res.json(proxyLog);
 });
 
-app.listen(PORT, () => console.log(`VPN browser running on http://localhost:${PORT}`));
+// ─── WISP WEBSSOCKET PROXY SERVER ───────────────────────────────────
+// Multiplexes TCP sockets over a single WebSocket so libcurl.js (WebAssembly)
+// can fetch HTTPS directly from the browser with end-to-end TLS encryption.
+// This eliminates the slow server-side fetch+rewrite pipeline.
+try {
+  const { server: wispServer } = require('@mercuryworkshop/wisp-js/server');
+  const http = require('http');
+  const wispHttp = http.createServer((req, res) => {
+    res.writeHead(404);
+    res.end('Wisp endpoint only');
+  });
+  // Share the same HTTP server upgrade for WebSocket
+  const wispInstance = new wispServer({
+    log_level: 'warn',
+  });
+  // Attach Wisp to the Express server's upgrade event
+  const existingServer = app.listen(PORT, () => {
+    console.log(`VPN browser running on http://localhost:${PORT}`);
+    console.log(`Wisp proxy attached on ws://localhost:${PORT}/wisp/`);
+  });
+  existingServer.on('upgrade', (req, socket, head) => {
+    if (req.url.startsWith('/wisp/')) {
+      wispInstance.handleUpgrade(req, socket, head);
+    }
+  });
+} catch (e) {
+  console.warn('[wisp] Failed to start Wisp server, falling back to server-side proxy:', e.message);
+  app.listen(PORT, () => console.log(`VPN browser running on http://localhost:${PORT} (no Wisp)`));
+}
