@@ -801,7 +801,7 @@ try{
   try{window.frameElement=null;}catch(e){}
   function blocked(v){if(!v)return false;var s=String(v);if(s.indexOf('pornhub')!==-1)return true;try{var u=new URL(s,window.location.href);return u.hostname!==window.location.hostname;}catch(_){return false;}}
   var LP=(window.location&&Object.getPrototypeOf(window.location))||(window.Location&&window.Location.prototype);
-  if(LP){try{var _h=Object.getOwnPropertyDescriptor(LP,'href');Object.defineProperty(LP,'href',{get:function(){return _h?_h.get.call(this):'';},set:function(v){if(blocked(v))return;try{_h.set.call(this,v);}catch(e){}},configurable:true});}catch(e){}try{var _r=LP.replace;LP.replace=function(v){if(blocked(v))return;return _r.apply(this,arguments);};}catch(e){}try{var _a=LP.assign;LP.assign=function(v){if(blocked(v))return;return _a.apply(this,arguments);};}catch(e){}}
+  if(LP){try{var _h=Object.getOwnPropertyDescriptor(LP,'href');Object.defineProperty(LP,'href',{get:function(){return _h?_h.get.call(this):'';},set:function(v){if(blocked(v))return;try{_h.set.call(this,v);}catch(e){}},configurable:true});}catch(e){}try{var _r=LP.replace;LP.replace=function(v){if(blocked(v))return;return _r.apply(this,arguments);};}catch(e){}try{var _a=LP.assign;LP.assign=function(v){if(blocked(v))return;return _a.apply(this,arguments);};}catch(e){}try{var _rl=LP.reload;LP.reload=function(){/* swallow reloads — Pornhub uses this to frame-bust */};}catch(e){}}
   try{var _dl=document.location;Object.defineProperty(document,'location',{get:function(){return _dl;},set:function(v){if(blocked(v))return;},configurable:true});}catch(e){}
   try{var _open=window.open.bind(window);window.open=function(u,t,f){if(t==='_parent'||t==='_top'||(t==='_blank'&&blocked(u)))t='_self';if(blocked(u))return null;return _open(u,t,f);};}catch(e){}
   var _push=history.pushState,_rpl=history.replaceState;function scrub(u){if(u&&String(u).indexOf('pornhub')!==-1)return;return u;}try{history.pushState=function(a,t,u){return _push.call(history,a,t,scrub(u));};}catch(e){}try{history.replaceState=function(a,t,u){return _rpl.call(history,a,t,scrub(u));};}catch(e){}
@@ -845,7 +845,10 @@ function go(){var u=document.getElementById('vp-url').value.trim();if(u)location
       res.removeHeader('x-frame-options');
       res.removeHeader('x-content-type-options');
       if (isEmbedded) {
-        res.set('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'self'; default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: *");
+        // Permissive CSP for embedded mode — resources are proxied through /go
+        // so everything is same-origin, but we allow * as fallback for any
+        // resources that slip through the rewriter.
+        res.set('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; frame-ancestors 'self'; base-uri 'self'");
       }
       res.send(body + enforcement);
       return;
