@@ -395,6 +395,7 @@
         <div class="browser-bar">
           <span id="displayUrl">No page loaded</span>
           <button type="button" id="refreshBtn" title="Refresh Browser" style="float:right;background:#ff7a00;color:#000;border:0;padding:4px 10px;border-radius:3px;font-weight:900;font-size:11px;cursor:pointer;text-transform:uppercase;">⟳ Refresh</button>
+          <button type="button" id="openTabBtn" title="Open in new tab" style="float:right;background:#ff9000;color:#000;border:0;padding:4px 10px;border-radius:3px;font-weight:900;font-size:11px;cursor:pointer;text-transform:uppercase;margin-right:6px;">↗ Open</button>
         </div>
         <div class="media-bar" id="mediaBar">
           <label class="media-field">Quality
@@ -795,6 +796,17 @@
     document.getElementById('refreshBtn').addEventListener('click', () => {
       const iframe = document.getElementById('frame');
       iframe.src = iframe.src;
+    });
+
+    document.getElementById('openTabBtn').addEventListener('click', () => {
+      const iframe = document.getElementById('frame');
+      const display = document.getElementById('displayUrl');
+      let src = iframe.src;
+      if (!src || src === 'about:blank' || src === window.location.href) {
+        const fallback = display.textContent && display.textContent !== 'No page loaded' ? display.textContent : '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') + '&country=us&premium=0';
+        src = fallback.startsWith('http') ? fallback : window.location.origin + fallback;
+      }
+      window.open(src, '_blank');
     });
 
     document.getElementById('homeBtn').addEventListener('click', () => {
