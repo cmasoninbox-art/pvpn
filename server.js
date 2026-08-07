@@ -859,12 +859,37 @@ try{
         n.querySelectorAll && n.querySelectorAll('img[src]').forEach(function(img){
           try{ var u4 = new URL(img.src, window.location.href); if(u4.hostname !== window.location.hostname && img.src.indexOf('/go?url=') === -1){ img.src = '/go?url=' + encodeURIComponent(u4.href); } }catch(_){}
         });
+        // Rewrite <iframe> srcs — THIS is the "refused to connect" fix
+        if(n.tagName === 'IFRAME' && n.src){
+          try{ var uif = new URL(n.src, window.location.href); if(uif.hostname !== window.location.hostname && n.src.indexOf('/go?url=') === -1){ n.src = '/go?url=' + encodeURIComponent(uif.href); } }catch(_){}
+        }
+        n.querySelectorAll && n.querySelectorAll('iframe[src]').forEach(function(ifr){
+          try{ var uif2 = new URL(ifr.src, window.location.href); if(uif2.hostname !== window.location.hostname && ifr.src.indexOf('/go?url=') === -1){ ifr.src = '/go?url=' + encodeURIComponent(uif2.href); } }catch(_){}
+        });
+        // Rewrite <script> srcs
+        if(n.tagName === 'SCRIPT' && n.src){
+          try{ var us = new URL(n.src, window.location.href); if(us.hostname !== window.location.hostname && n.src.indexOf('/go?url=') === -1){ n.src = '/go?url=' + encodeURIComponent(us.href); } }catch(_){}
+        }
+        n.querySelectorAll && n.querySelectorAll('script[src]').forEach(function(sc){
+          try{ var us2 = new URL(sc.src, window.location.href); if(us2.hostname !== window.location.hostname && sc.src.indexOf('/go?url=') === -1){ sc.src = '/go?url=' + encodeURIComponent(us2.href); } }catch(_){}
+        });
+        // Rewrite <link> hrefs
+        if(n.tagName === 'LINK' && n.href){
+          try{ var ul = new URL(n.href, window.location.href); if(ul.hostname !== window.location.hostname && n.href.indexOf('/go?url=') === -1){ n.href = '/go?url=' + encodeURIComponent(ul.href); } }catch(_){}
+        }
+        n.querySelectorAll && n.querySelectorAll('link[href]').forEach(function(lk){
+          try{ var ul2 = new URL(lk.href, window.location.href); if(ul2.hostname !== window.location.hostname && lk.href.indexOf('/go?url=') === -1){ lk.href = '/go?url=' + encodeURIComponent(ul2.href); } }catch(_){}
+        });
         // Rewrite <form> actions
         if(n.tagName === 'FORM' && n.action){
           try{ var u5 = new URL(n.action, window.location.href); if(u5.hostname !== window.location.hostname && n.action.indexOf('/go?url=') === -1){ n.action = '/go?url=' + encodeURIComponent(u5.href); } }catch(_){}
         }
         n.querySelectorAll && n.querySelectorAll('form[action]').forEach(function(f){
           try{ var u6 = new URL(f.action, window.location.href); if(u6.hostname !== window.location.hostname && f.action.indexOf('/go?url=') === -1){ f.action = '/go?url=' + encodeURIComponent(u6.href); } }catch(_){}
+        });
+        // Rewrite <video>/<source>/<audio> srcs
+        n.querySelectorAll && n.querySelectorAll('video[src], source[src], audio[src]').forEach(function(v){
+          try{ var uv = new URL(v.src, window.location.href); if(uv.hostname !== window.location.hostname && v.src.indexOf('/go?url=') === -1){ v.src = '/go?url=' + encodeURIComponent(uv.href); } }catch(_){}
         });
         // Kill meta refresh tags
         if(n.tagName === 'META' && n.httpEquiv && /refresh/i.test(n.httpEquiv)){
