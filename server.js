@@ -325,6 +325,10 @@ async function proxyHandler(req, res) {
         const u = norm.startsWith('//') ? 'https:' + norm : norm;
         return proxyWrap(u);
       });
+      // Inject frame-busting neutralizer BEFORE any existing scripts so framed sites
+      // can't break out of the iframe by checking top/parent/frameElement.
+      const antiBust = `<script>(function(){try{window.top=window.self;window.frameElement=null;Object.defineProperty(window,'top',{get:function(){return window.self}});Object.defineProperty(window,'parent',{get:function(){return window.self}});}catch(e){}})();</script>`;
+      rewritten = rewritten.replace('</head>', antiBust + '</head>') || rewritten.replace('<body>', '<body>' + antiBust) || rewritten + antiBust;
       // CSP: everything flows through our origin so framed sites can't load the real domain
       // (which would serve X-Frame-Options: DENY and break framing). Sandbox already allows
       // scripts/forms/same-origin/popups.
