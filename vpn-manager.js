@@ -1,7 +1,7 @@
 // Per-country Tor exit manager. Spawns one Tor instance per country (non-root,
 // user-owned DataDirectory) so premium users can pick a geo exit. Free tier uses
 // the system Tor on 9050 (random slow exit). No sudo required.
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { SocksProxyAgent } = require('socks-proxy-agent');
@@ -11,8 +11,23 @@ const BASE_PORT = 9100;            // country instances start here
 const DATA_ROOT = path.join(__dirname, '.tor-exits');
 
 const instances = {}; // code -> { port, proc, agent }
+let torAvailable = null; // cached availability check
+
+function checkTorAvailable() {
+  if (torAvailable !== null) return torAvailable;
+  try {
+    execSync('which tor', { stdio: 'ignore' });
+    torAvailable = true;
+  } catch (_) {
+    torAvailable = false;
+  }
+  return torAvailable;
+}
 
 function ensureCountry(code) {
+  if (!checkTorAvailable()) {
+    throw new Error('Tor binary not available on this system');
+  }
   if (instances[code]) return instances[code];
   const port = BASE_PORT + Object.keys(instances).length;
   const dataDir = path.join(DATA_ROOT, code);
@@ -40,6 +55,9 @@ function agentForCountry(code) {
 // Persistent US-pinned Tor exit for the FREE tier: a free VPN, permanently America.
 let freeUsRec = null;
 function getFreeUs() {
+  if (!checkTorAvailable()) {
+    throw new Error('Tor binary not available on this system');
+  }
   if (freeUsRec) return freeUsRec.agent;
   const port = BASE_PORT + 90;
   const dataDir = path.join(DATA_ROOT, 'free-us');
@@ -62,14 +80,9 @@ function shutdownAll() {
 
 // Pre-spawn all country Tor instances so first premium request is instant.
 function warmup(codes) {
+  if (!checkTorAvailable()) return; // skip on systems without tor
   getFreeUs(); // FREE tier always uses a US-pinned exit
   (codes || []).forEach(c => { if (c && c !== 'us') ensureCountry(c); });
-}
-
-// Returns a SocksProxyAgent pinned to a US Tor exit (free tier's permanent America VPN).
-function getFreeUs() {
-  const rec = ensureCountry('us');
-  return rec.agent;
 }
 
 module.exports = { agentForCountry, getFreeUs, warmup, shutdownAll, FREE_SOCKS: 'socks5://127.0.0.1:9050' };

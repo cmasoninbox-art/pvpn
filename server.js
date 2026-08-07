@@ -94,7 +94,7 @@ const COUNTRIES = [
 ];
 
 // Pre-spawn per-country Tor exits (premium geo VPN) + the US exit (free tier's permanent America VPN).
-vpnMgr.warmup(['us', ...COUNTRIES.map(c => c.code)]);
+try { vpnMgr.warmup(['us', ...COUNTRIES.map(c => c.code)]); } catch (_) {}
 
 const AD_SLOTS = {
   top: '<a href="/donate" target="_blank" rel="noopener"><img class="top-banner" src="/images/bannerpvpn.png" alt="DONATE TO" /></a>',
