@@ -684,9 +684,13 @@
       const action = btn.getAttribute('data-action');
       menuDropdown.classList.remove('open');
       if (action === 'login') {
-        alert('Login placeholder');
+        menuDropdown.classList.remove('open');
+        showLogin();
+        if (loginMenu) loginMenu.style.display = 'flex';
       } else if (action === 'signup') {
-        alert('Sign Up placeholder');
+        menuDropdown.classList.remove('open');
+        showRegister();
+        if (loginMenu) loginMenu.style.display = 'flex';
       } else if (action === 'categories') {
         alert('Categories page placeholder');
       } else if (action === 'top') {
