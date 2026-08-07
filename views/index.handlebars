@@ -582,6 +582,17 @@
         if (frame) {
           // Free: straight into Pornhub through the built-in proxy (Tor free exit).
           frame.src = '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') + '&country=us&premium=0';
+          // If iframe stays blank, open direct page fallback
+          setTimeout(() => {
+            try {
+              const doc = frame.contentDocument || frame.contentWindow.document;
+              if (!doc || doc.body.innerHTML.length < 50) {
+                window.open('/proxy?url=' + encodeURIComponent('https://www.pornhub.com') + '&country=us&premium=0', '_blank');
+              }
+            } catch (_) {
+              window.open('/proxy?url=' + encodeURIComponent('https://www.pornhub.com') + '&country=us&premium=0', '_blank');
+            }
+          }, 3000);
         }
       });
     }
