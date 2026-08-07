@@ -4,3 +4,4 @@
 .claude/
 node_modules/
 public/images/sidead-temp.png
+.tor-exits/
