@@ -400,6 +400,20 @@ async function proxyHandler(req, res) {
         const u = norm.startsWith('//') ? 'https:' + norm : norm;
         return proxyWrap(u);
       });
+      // Static frame-bust neutralization: rewrite navigation references that break out of
+      // the iframe (top.location / parent.location / window.top / window.parent) to self,
+      // inside <script> blocks. This defeats the common static frame-bust patterns so the
+      // framed page can never navigate the outer frame (or itself) to the real domain.
+      rewritten = rewritten.replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi, (m, open, code, close) => {
+        const fixed = code
+          .replace(/top\.location/g, 'self.location')
+          .replace(/parent\.location/g, 'self.location')
+          .replace(/window\.top\b/g, 'window.self')
+          .replace(/window\.parent\b/g, 'window.self')
+          .replace(/\bparent\s*===|\bparent\s*!==|\bparent\s*==|\bparent\s*!=/g, (mm) => mm.replace('parent', 'self'))
+          .replace(/\btop\s*===|\btop\s*!==|\btop\s*==|\btop\s*!=/g, (mm) => mm.replace('top', 'self'));
+        return open + fixed + close;
+      });
       // Inject frame-busting neutralizer. MUST run before any site script. It freezes
       // top/parent/frameElement to self and traps navigation at the PROTOTYPE level so
       // that no matter how framed-page code obtains a Location (window.location,
