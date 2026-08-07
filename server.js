@@ -543,6 +543,136 @@ try{
 app.get('/proxy', proxyHandler);
 app.post('/proxy', express.urlencoded({ extended: true }), express.json(), (req, res) => proxyHandler(req, res));
 
+// ─── FULL-PAGE PROXY (hide.me style) ────────────────────────────────
+// Serves the proxied page directly — no iframe, no CSP jail, no anti-bust JS.
+// All links/resources are rewritten to /go?url=... so the user browses entirely
+// through the proxy, just like hide.me/en/proxy.
+const fullPageProxyHandler = async (req, res) => {
+  try {
+    let url = (req.query.url || '').trim();
+    if (!url) return res.status(400).send('Missing ?url=');
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    const targetHost = new URL(url).host;
+
+    // Blocklist check
+    if (APP_CONFIG.blocklist && APP_CONFIG.blocklist.length) {
+      const host = targetHost.toLowerCase();
+      const blocked = APP_CONFIG.blocklist.some(b => {
+        const d = String(b || '').toLowerCase().trim();
+        if (!d) return false;
+        return host === d || host.endsWith('.' + d);
+      });
+      if (blocked) return res.status(403).send('Blocked by administrator: ' + host);
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    const response = await fetch(url, {
+      method: req.method === 'POST' ? 'POST' : 'GET',
+      body: req.method === 'POST' ? new URLSearchParams(req.body || {}).toString() : undefined,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'identity',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        ...(req.method === 'POST' ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
+      },
+      redirect: 'follow',
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    const contentType = response.headers.get('content-type') || 'text/html';
+
+    // Forward Set-Cookie from upstream, scoped to our /go path
+    const setCookie = response.headers.get('set-cookie');
+    if (setCookie) {
+      const cookies = Array.isArray(setCookie) ? setCookie : [setCookie];
+      cookies.forEach(c => {
+        // Rewrite Path=/ to Path=/go so cookies don't leak to the main site
+        const rewritten = c.replace(/;\s*Path=[^;]+/i, '; Path=/go');
+        res.append('Set-Cookie', rewritten);
+      });
+    }
+
+    if (contentType.includes('text/html')) {
+      const base = new URL(url);
+      const proxyBase = '/go?url=' + encodeURIComponent(base.origin + '/');
+      let body = await response.text();
+
+      // Rewrite href/src/action to /go?url=...
+      body = body
+        .replace(/\shref=([\"'])([^\"'>]+)\1/gi, (match, q, urlVal) => {
+          if (!urlVal || urlVal.startsWith('#') || urlVal.startsWith('javascript:') || urlVal.startsWith('data:') || urlVal.startsWith('/go?url=')) return match;
+          try { const abs = new URL(urlVal, base); return ` href=${q}/go?url=${encodeURIComponent(abs.href)}${q}`; } catch (_) { return match; }
+        })
+        .replace(/\ssrc=([\"'])([^\"'>]+)\1/gi, (match, q, urlVal) => {
+          if (!urlVal || urlVal.startsWith('data:') || urlVal.startsWith('javascript:') || urlVal.startsWith('/go?url=')) return match;
+          try { const abs = new URL(urlVal, base); return ` src=${q}/go?url=${encodeURIComponent(abs.href)}${q}`; } catch (_) { return match; }
+        })
+        .replace(/\saction=([\"'])([^\"'>]+)\1/gi, (match, q, urlVal) => {
+          if (!urlVal || urlVal.startsWith('javascript:') || urlVal.startsWith('/go?url=')) return match;
+          try { const abs = new URL(urlVal, base); return ` action=${q}/go?url=${encodeURIComponent(abs.href)}${q}`; } catch (_) { return match; }
+        });
+
+      // Rewrite URLs inside <script> blocks
+      body = body.replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi, (m, open, code, close) => {
+        const fixed = code.replace(/(?:https?:)?\/\/[^\s\"'`<>]+/g, (tok) => {
+          try {
+            const u = tok.startsWith('//') ? new URL('https:' + tok) : new URL(tok);
+            if (u.protocol !== 'http:' && u.protocol !== 'https:') return tok;
+            return '/go?url=' + encodeURIComponent(u.href);
+          } catch (_) { return tok; }
+        });
+        return open + fixed + close;
+      });
+
+      // Inject <base> tag so relative URLs resolve through the proxy
+      body = body.replace(/<head([^>]*)>/i, `<head$1><base href="${proxyBase}" target="_self">`);
+
+      // Inject a thin toolbar at the top so the user can navigate to a new URL
+      const toolbar = `
+<style>
+#vp-toolbar{position:fixed;top:0;left:0;right:0;z-index:99999;background:#000;border-bottom:2px solid #ff7a00;padding:6px 10px;display:flex;gap:8px;align-items:center;font-family:Arial,sans-serif;font-size:13px}
+#vp-toolbar input{flex:1;background:#111;color:#fff;border:1px solid #333;padding:6px 10px;border-radius:3px;font-size:13px}
+#vp-toolbar button{background:#ff7a00;color:#000;border:0;padding:6px 14px;font-weight:900;text-transform:uppercase;border-radius:3px;cursor:pointer;font-size:12px}
+#vp-toolbar button.home{background:#333;color:#ff7a00;border:1px solid #ff7a00}
+#vp-toolbar .url-display{color:#888;font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body{margin-top:38px!important}
+</style>
+<div id="vp-toolbar">
+  <button class="home" onclick="location.href='/'">🏠 Home</button>
+  <span class="url-display">${targetHost}</span>
+  <input id="vp-url" type="text" placeholder="Enter URL..." value="${url}" onkeydown="if(event.key==='Enter')go()">
+  <button onclick="go()">Go</button>
+</div>
+<script>
+function go(){var u=document.getElementById('vp-url').value.trim();if(u)location.href='/go?url='+encodeURIComponent(/^https?:\\/\\//i.test(u)?u:'https://'+u);}
+</script>`;
+      body = body.replace(/<body([^>]*)>/i, `<body$1>${toolbar}`);
+
+      res.set('Content-Type', 'text/html');
+      res.set('Cache-Control', 'no-store');
+      res.send(body);
+      return;
+    }
+
+    // Non-HTML: pass through
+    res.set('Content-Type', contentType);
+    res.set('Cache-Control', 'public, max-age=3600');
+    const buf = await response.arrayBuffer();
+    res.send(Buffer.from(buf));
+  } catch (e) {
+    res.status(502).send(`Proxy error: ${e.message}`);
+  }
+};
+
+app.get('/go', fullPageProxyHandler);
+app.post('/go', express.urlencoded({ extended: true }), express.json(), (req, res) => fullPageProxyHandler(req, res));
+
 app.get('/browse', (req, res) => {
   const target = (req.query.url || '').trim();
   if (!target) return res.redirect('/');
