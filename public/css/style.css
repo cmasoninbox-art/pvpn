@@ -384,6 +384,39 @@ iframe {
   .ad-bottom { height: 50px; }
 }
 
+/* ─── MOBILE OPTIMIZATIONS ──────────────────────────────────────── */
+@media (max-width: 600px) {
+  html, body {
+    overflow-x: hidden;
+  }
+  #frame, iframe#frame, iframe[name="frame"] {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: none !important;
+    border: 0 !important;
+    display: block !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 1 !important;
+  }
+  .banner, .ad-top, .ad-bottom {
+    display: none !important;
+  }
+  #chat-panel {
+    max-width: 95vw !important;
+    min-width: 260px !important;
+    font-size: 13px !important;
+  }
+  #chat-panel .chat-header {
+    font-size: 12px !important;
+  }
+  .toolbar-row {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+}
+
 /* ─── AD NETWORK SLOTS ──────────────────────────────────────────── */
 #ad-slot-top, #ad-slot-left, #ad-slot-right {
   position: relative;
