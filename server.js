@@ -314,7 +314,7 @@ async function proxyHandler(req, res) {
         })
         // Inject <base> LAST so the href/src rewrites above don't double-process it.
         // Point it at our proxy so relative sub-resources resolve through us (not the real domain).
-        .replace(/<head([^>]*)>/i, `<head$1><base href="${proxyBase}" target="_self">`);
+        .replace(/<head([^>]*)>/i, `<head$1><base href="${proxyBase}" target="_self"><meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; frame-ancestors *; upgrade-insecure-requests; script-src * 'unsafe-inline' 'unsafe-eval' blob: data:; style-src * 'unsafe-inline' blob: data:; img-src * data: blob:; media-src * data: blob:; connect-src * data: blob:; font-src * data: blob:;">`);
 
       // Strip meta-X-Frame-Options and CSP from HTML (Pornhub injects via <meta> tags)
       rewritten = rewritten.replace(/<meta\s+http-equiv=["']X-Frame-Options["'][^>]*>/gi, '');
@@ -727,6 +727,17 @@ const fullPageProxyHandler = async (req, res) => {
       const proxyBase = '/go?url=' + encodeURIComponent(base.origin + '/');
       let body = await response.text();
 
+      // Forward upstream headers, strip XFO/CSP blocking headers
+      response.headers.forEach((value, name) => {
+        if (name.toLowerCase() !== 'content-type' && name.toLowerCase() !== 'transfer-encoding') {
+          res.setHeader(name, value);
+        }
+      });
+      res.removeHeader('x-frame-options');
+      res.removeHeader('x-content-type-options');
+      res.removeHeader('x-webkit-csp');
+      res.removeHeader('x-content-security-policy');
+
       // ── URL rewriting (same engine as /proxy) ──────────────────
       const proxyWrap = (raw) => {
         let u;
@@ -843,7 +854,7 @@ const fullPageProxyHandler = async (req, res) => {
 `;
 
       // Inject <base> tag so relative URLs resolve through the proxy
-      body = body.replace(/<head([^>]*)>/i, `<head$1><base href="${proxyBase}" target="_self">`);
+body = body.replace(/<head([^>]*)>/i, `<head$1><base href="${proxyBase}" target="_self"><meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' blob: data:; style-src * 'unsafe-inline' blob: data:; connect-src * data: blob:;">`);
 
       const isEmbedded = req.query.embedded === '1';
 

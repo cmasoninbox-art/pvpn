@@ -434,6 +434,60 @@
           </div>
         </div>
         <iframe id="frame" sandbox="allow-forms allow-scripts allow-popups allow-presentation" allow="fullscreen"></iframe>
+        <div id="fallbackMsg" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#111; color:#ff7a00; padding:20px; border:2px solid #ff7a00; border-radius:8px; z-index:10000; max-width:400px; text-align:center;">
+          <h3 style="margin:0 0 10px;">Content Blocked</h3>
+          <p style="margin:0 0 15px;">This site prevents embedding. <a href="#" id="openInTab" style="color:#ff7a00; text-decoration:underline; cursor:pointer;">Open in new tab</a></p>
+        </div>
+        <script>
+          (function() {
+            const frame = document.getElementById('frame');
+            const fallback = document.getElementById('fallbackMsg');
+            const openBtn = document.getElementById('openInTab');
+            let loadFailed = false;
+            
+            if (frame && fallback) {
+              setTimeout(() => {
+                if (frame.contentWindow && frame.contentWindow.document) {
+                  try {
+                    const title = frame.contentWindow.document.title || '';
+                    if (title.toLowerCase().includes('blocked') || title.toLowerCase().includes('refused') || !frame.src.includes('proxy?url=')) {
+                      showFallback();
+                    }
+                  } catch (e) {
+                    showFallback();
+                  }
+                } else {
+                  showFallback();
+                }
+              }, 3000);
+              
+              window.addEventListener('message', function(e) {
+                if (e.data && (e.data.includes('X-Frame-Options') || e.data.includes('blocked'))) {
+                  showFallback();
+                }
+              });
+            }
+            
+            function showFallback() {
+              if (loadFailed) return;
+              loadFailed = true;
+              fallback.style.display = 'block';
+              frame.style.display = 'none';
+            }
+            
+            if (openBtn) {
+              openBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const currentDisplay = document.getElementById('displayUrl')?.textContent;
+                if (currentDisplay) {
+                  window.open('https://' + currentDisplay, '_blank');
+                } else {
+                  window.open(frame?.src?.replace('/proxy?url=', '').replace('&premium=0', ''), '_blank');
+                }
+              });
+            }
+          })();
+        </script>
       </section>
 
       <aside class="right-ads" id="ad-slot-right">{{{ads.right}}}</aside>
