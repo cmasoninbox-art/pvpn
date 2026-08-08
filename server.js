@@ -1946,15 +1946,15 @@ try {
 app.get('/extension/:browser', (req, res) => {
   const browser = req.params.browser;
   if (browser === 'chrome') {
-    res.download('/tmp/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+    res.download('public/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
       if (err) res.status(404).send('Extension not available');
     });
   } else if (browser === 'edge') {
-    res.download('/tmp/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+    res.download('public/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
       if (err) res.status(404).send('Extension not available');
     });
   } else if (browser === 'firefox') {
-    res.download('/tmp/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+    res.download('public/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
       if (err) res.status(404).send('Extension not available');
     });
   } else {
@@ -1979,15 +1979,15 @@ app.listen(PORT, () => {
 app.get('/extension/:browser', (req, res) => {
   const browser = req.params.browser;
   if (browser === 'chrome') {
-    res.download('/tmp/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+    res.download('public/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
       if (err) res.status(404).send('Extension not available');
     });
   } else if (browser === 'edge') {
-    res.download('/tmp/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+    res.download('public/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
       if (err) res.status(404).send('Extension not available');
     });
   } else if (browser === 'firefox') {
-    res.download('/tmp/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+    res.download('public/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
       if (err) res.status(404).send('Extension not available');
     });
   } else {
