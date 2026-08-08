@@ -1944,13 +1944,19 @@ try {
 
 // ── Extension Download Routes ──
 app.get('/extension/:browser', (req, res) => {
-  const { tier } = req.query;
-  const userTier = tier || 'free';
   const browser = req.params.browser;
   if (browser === 'chrome') {
-    res.redirect('https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension.zip');
+    res.download('/tmp/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+      if (err) res.status(404).send('Extension not available');
+    });
+  } else if (browser === 'edge') {
+    res.download('/tmp/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+      if (err) res.status(404).send('Extension not available');
+    });
   } else if (browser === 'firefox') {
-    res.redirect('https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension-firefox.xpi');
+    res.download('/tmp/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+      if (err) res.status(404).send('Extension not available');
+    });
   } else {
     res.status(404).send('Not found');
   }
@@ -1971,13 +1977,19 @@ app.listen(PORT, () => {
 
 // ── Extension Download Routes ──
 app.get('/extension/:browser', (req, res) => {
-  const { tier } = req.query;
-  const userTier = tier || 'free';
   const browser = req.params.browser;
   if (browser === 'chrome') {
-    res.redirect('https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension.zip');
+    res.download('/tmp/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+      if (err) res.status(404).send('Extension not available');
+    });
+  } else if (browser === 'edge') {
+    res.download('/tmp/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+      if (err) res.status(404).send('Extension not available');
+    });
   } else if (browser === 'firefox') {
-    res.redirect('https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension-firefox.xpi');
+    res.download('/tmp/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+      if (err) res.status(404).send('Extension not available');
+    });
   } else {
     res.status(404).send('Not found');
   }
