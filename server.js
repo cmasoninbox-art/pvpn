@@ -267,6 +267,19 @@ async function proxyHandler(req, res) {
     clearTimeout(timeout);
     const contentType = response.headers.get('content-type') || 'text/html';
     const body = await response.text();
+
+    // Forward upstream headers to our response, then strip blocking headers
+    // This ensures X-Frame-Options/CSP from upstream are properly removed
+    response.headers.forEach((value, name) => {
+      if (name.toLowerCase() !== 'content-type' && name.toLowerCase() !== 'transfer-encoding') {
+        res.setHeader(name, value);
+      }
+    });
+    // Strip headers that would block iframe embedding
+    res.removeHeader('x-frame-options');
+    res.removeHeader('x-content-type-options');
+    res.removeHeader('x-webkit-csp');
+    res.removeHeader('x-content-security-policy');
     if (contentType.includes('text/html')) {
       const base = new URL(url);
       const proxyBase = '/proxy?url=' + encodeURIComponent(base.origin + '/');
