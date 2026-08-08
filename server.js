@@ -28,6 +28,47 @@ const ADMIN_PASS = process.env.ADMIN_PASS || 'aimadness';
 const SESSION_SECRET = process.env.SESSION_SECRET || ('pvpn-admin-secret-' + (process.env.PORT || '3000'));
 const cookie = require('cookie');
 
+
+function getEmbedUrl(url) {
+  try {
+    if (url.includes('pornhub.com')) {
+      const u = new URL(url);
+      let videoId = null;
+      
+      if (u.pathname.includes('view_video.php')) {
+        const params = new URLSearchParams(u.search);
+        videoId = params.get('viewkey');
+      } else if (u.pathname.startsWith('/video/')) {
+        videoId = u.pathname.split('/')[2];
+      }
+      
+      if (videoId) {
+        return 'https://www.pornhub.com/embed/' + videoId;
+      }
+    }
+    
+    if (url.includes('youtube.com/watch')) {
+      const u = new URL(url);
+      const videoId = u.searchParams.get('v');
+      if (videoId) {
+        return 'https://www.youtube.com/embed/' + videoId;
+      }
+    }
+    
+    if (url.includes('vimeo.com/')) {
+      const u = new URL(url);
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts.length >= 1 && !u.pathname.includes('/videos')) {
+        return 'https://player.vimeo.com/video/' + parts[0];
+      }
+    }
+    
+    return url;
+  } catch (e) {
+    return url;
+  }
+}
+
 function sign(val) {
   return crypto.createHmac('sha256', SESSION_SECRET).update(val).digest('base64url');
 }
@@ -1899,7 +1940,23 @@ try {
     log_level: 'warn',
   });
   // Attach Wisp to the Express server's upgrade event
-  const existingServer = app.listen(PORT, () => {
+  const existingServer = 
+
+// ── Extension Download Routes ──
+app.get('/extension/:browser', (req, res) => {
+  const { tier } = req.query;
+  const userTier = tier || 'free';
+  const browser = req.params.browser;
+  if (browser === 'chrome') {
+    res.redirect('https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension.zip');
+  } else if (browser === 'firefox') {
+    res.redirect('https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension-firefox.xpi');
+  } else {
+    res.status(404).send('Not found');
+  }
+});
+
+app.listen(PORT, () => {
     console.log(`VPN browser running on http://localhost:${PORT}`);
     console.log(`Wisp proxy attached on ws://localhost:${PORT}/wisp/`);
   });
@@ -1910,5 +1967,21 @@ try {
   });
 } catch (e) {
   console.warn('[wisp] Failed to start Wisp server, falling back to server-side proxy:', e.message);
-  app.listen(PORT, () => console.log(`VPN browser running on http://localhost:${PORT} (no Wisp)`));
+  
+
+// ── Extension Download Routes ──
+app.get('/extension/:browser', (req, res) => {
+  const { tier } = req.query;
+  const userTier = tier || 'free';
+  const browser = req.params.browser;
+  if (browser === 'chrome') {
+    res.redirect('https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension.zip');
+  } else if (browser === 'firefox') {
+    res.redirect('https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension-firefox.xpi');
+  } else {
+    res.status(404).send('Not found');
+  }
+});
+
+app.listen(PORT, () => console.log(`VPN browser running on http://localhost:${PORT} (no Wisp)`));
 }
