@@ -185,6 +185,22 @@ app.get('/api/me', (req, res) => {
   res.json({ ok: true, user: u ? publicUser(u) : null });
 });
 
+// Browser-extension helper endpoint. Returns the caller's tier so the
+// extension background worker can decide whether to enable frame-bust
+// header stripping. Defaults to 'free' (rules enabled) when logged out
+// or premium status is unknown — fail-open so free users always work.
+app.get('/api/user-tier', (req, res) => {
+  const u = parseUser(req);
+  const premium = !!(u && u.premium);
+  res.json({
+    ok: true,
+    tier: premium ? 'premium' : 'free',
+    premium,
+    premiumTier: u && u.premiumTier ? u.premiumTier : null,
+    premiumExpires: u && u.premiumExpires ? u.premiumExpires : null
+  });
+});
+
 const COUNTRIES = [
   { code: 'us', name: 'United States', flag: '🇺🇸' },
   { code: 'uk', name: 'United Kingdom', flag: '🇬🇧' },

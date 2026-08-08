@@ -42,12 +42,14 @@ function getTailscaleAgent() {
   }
   return tsAgent;
 }
-// Prefer Tailscale (fast) over Tor (slow) for the FREE lane when both exist.
-// Country-pinned Tor still wins for premium geo requests below.
+// Free tier: US-pinned Tor exit first (always America).
+// Tailscale fallback only if Tor fails — its exit nodes are random geo.
 function getFreeAgent() {
+  // Free tier: US-pinned Tor exit first (always America).
+  // Tailscale fallback only if Tor fails — its exit nodes are random geo.
+  try { return getFreeUs(); } catch (_) {}
   const ts = getTailscaleAgent();
-  if (ts) return ts;
-  return getFreeUs();
+  return ts;
 }
 
 function ensureCountry(code) {

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 280px;
+      padding: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 8px;
+    }
+    .title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ff7a00;
+    }
+    .close-btn {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    .close-btn:hover { color: #fff; }
+    .status {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+    .label { color: #888; }
+    .value { color: #fff; font-weight: 500; }
+    .value.active { color: #0f0; }
+    .value.inactive { color: #f00; }
+    .divider { border-top: 1px solid #333; margin: 8px 0; }
+    .btn {
+      width: 100%;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #ff7a00; color: #000; }
+    .btn-secondary { background: #333; color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="title">VPN Browser Proxy</span>
+    <button class="close-btn" id="closeBtn" title="Close">×</button>
+  </div>
+  <div class="status" id="status">
+    <div class="status-row">
+      <span class="label">Status</span>
+      <span class="value" id="statusVal">Checking...</span>
+    </div>
+    <div class="status-row">
+      <span class="label">Tier</span>
+      <span class="value" id="tierVal">--</span>
+    </div>
+    <div class="status-row">
+      <span class="label">Rules</span>
+      <span class="value" id="rulesVal">--</span>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <button class="btn btn-primary" id="refreshBtn">Refresh Status</button>
+  <button class="btn btn-secondary" id="checkTierBtn">Check Tier</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "VPN Browser Proxy Helper",
+  "version": "1.0.1",
+  "description": "Enables embedding of sites blocked by X-Frame-Options",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "vpn-proxy-helper@pvpn.onrender.com",
+      "strict_min_version": "115.0"
+    }
+  },
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.pornhub.com/*",
+    "https://*.xvideos.com/*",
+    "https://*.xnxx.com/*",
+    "https://*.youporn.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "VPN Browser Proxy"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  }
+}
