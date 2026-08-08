@@ -16,14 +16,6 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-07-29.d
 const app = express();
 app.use(express.json());
 
-// Global CSP: allow same-origin iframe embedding for all routes.
-// This is the header fix for "refused to connect" — ensures our /go and /proxy
-// responses can be embedded in our own iframe.
-app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
-  res.removeHeader('X-Frame-Options');
-  next();
-});
 
 app.engine('handlebars', exphbs.engine({ defaultLayout: false }));
 app.set('view engine', 'handlebars');
