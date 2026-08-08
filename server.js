@@ -590,7 +590,7 @@ try{
     // CSP: form-action + frame-src block navigation to foreign origins.
     // removed navigate-to (IE-only, unsupported)
     res.set('Content-Security-Policy',
-      "form-action 'self'; frame-src 'self'; frame-ancestors 'self'");
+      "form-action 'self'; frame-src 'self'; ");
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
@@ -1068,7 +1068,7 @@ function go(){var u=document.getElementById('vp-url').value.trim();if(u)location
         // Permissive CSP for embedded mode — resources are proxied through /go
         // so everything is same-origin, but we allow * as fallback for any
         // resources that slip through the rewriter.
-        res.set('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; frame-ancestors 'self'; base-uri 'self'");
+        res.set('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'");
       }
       res.send(body + enforcement);
       return;
