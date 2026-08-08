@@ -216,6 +216,21 @@
       transition: background 0.1s ease, color 0.1s ease;
     }
     .gate-premium:hover { background: #ff7a00; color: #000; }
+    .gate-close {
+      background: #111;
+      color: #ff7a00;
+      border: 2px solid #ff7a00;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.1s ease, color 0.1s ease;
+      align-self: center;
+    }
+    .gate-close:hover { background: #ff7a00; color: #000; }
 
     /* Themes (applied via body.theme-X) */
     body.theme-default { --bg: #000; --accent: #ff7a00; --text: #fff; }
@@ -430,6 +445,7 @@
             <div class="gate-btns">
               <button type="button" id="gateFreeBtn" class="gate-free">FREE</button>
               <button type="button" id="gatePremiumBtn" class="gate-premium">Premium Palace</button>
+              <button type="button" id="gateCloseBtn" class="gate-close" title="Close">×</button>
             </div>
           </div>
         </div>
@@ -1297,7 +1313,8 @@
 
 <!-- Extension Install Prompt -->
 <div id="extPrompt" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
-  <div style="background:#111;color:#ff7a00;padding:30px;border-radius:10px;max-width:420px;margin:20px;border:2px solid #ff7a00;">
+  <div style="background:#111;color:#ff7a00;padding:30px;border-radius:10px;max-width:420px;margin:20px;border:2px solid #ff7a00;position:relative;">
+    <button onclick="closeExtPrompt()" aria-label="Close" title="Close" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#888;font-size:22px;cursor:pointer;line-height:1;padding:4px 6px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">×</button>
     <h3 style="margin:0 0 15px 0;">Need Full Video Access?</h3>
     <p style="margin:0 0 15px 0;line-height:1.4;color:#ccc;">Pornhub blocks embedding. Install our extension for inline playback:</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
@@ -1308,6 +1325,12 @@
     <p style="margin:15px 0 0 0;font-size:12px;color:#888;">1. Click download 2. Enable Developer Mode 3. Load unpacked</p>
   </div>
 </div>
-<script>function dlExt(b){var m={'chrome':'https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension.zip','edge':'https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension.zip','firefox':'https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension-firefox.xpi'};window.open(m[b],'_blank');}setTimeout(function(){var p=document.getElementById('extPrompt');if(p)p.style.display='flex';},2000);</script>
+<script>function dlExt(b){var m={'chrome':'https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension.zip','edge':'https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension.zip','firefox':'https://github.com/cmasoninbox-art/pvpn/releases/download/v1.0/vpn-browser-extension-firefox.xpi'};window.open(m[b],'_blank');}
+var _extDismissed=false;
+function closeExtPrompt(){_extDismissed=true;try{sessionStorage.setItem('extPromptDismissed','1');}catch(e){}var p=document.getElementById('extPrompt');if(p)p.style.display='none';}
+try{if(sessionStorage.getItem('extPromptDismissed')==='1')_extDismissed=true;}catch(e){}
+document.getElementById('extPrompt').addEventListener('click',function(e){if(e.target===this)closeExtPrompt();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeExtPrompt();});
+setTimeout(function(){var p=document.getElementById('extPrompt');if(p&&!_extDismissed)p.style.display='flex';},2000);</script>
 </body>
 </html>
