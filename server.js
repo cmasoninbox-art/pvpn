@@ -573,7 +573,6 @@ try{
         "img-src 'self' data: blob: *",
         "media-src 'self' data: blob: *",
         "connect-src 'self' *",
-        "frame-ancestors 'self'",
         "base-uri 'self'",
       ].join('; ');
       res.set('Content-Type', 'text/html');
@@ -584,7 +583,7 @@ try{
       // CSP: form-action + frame-src block navigation to foreign origins.
       // frame-ancestors prevents others framing us. Removed navigate-to (IE-only, unsupported).
       res.set('Content-Security-Policy',
-        "form-action 'self'; frame-src 'self'; frame-ancestors 'self'");
+        "form-action 'self'; frame-src 'self';");
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
