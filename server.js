@@ -499,7 +499,7 @@ async function proxyHandler(req, res) {
       };
       // Eagerly load deferred thumbnails so visible cards do not require a hover.
       rewritten = rewritten.replace(/<img\b[^>]*>/gi, (tag) => {
-        const deferred = tag.match(/\s(data-src|data-thumb_url|data-original)=(["'])([^"']+)\2/i);
+        const deferred = tag.match(/\s(data-src|data-thumb_url|data-original|data-image)=(["'])([^"']+)\2/i);
         if (!deferred) return tag;
         let raw = deferred[3];
         try { raw = new URL(raw, base.href).href; } catch (_) {}
