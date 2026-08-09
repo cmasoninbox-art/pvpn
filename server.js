@@ -778,22 +778,42 @@ const fullPageProxyHandler = async (req, res) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
 
+    // Preserve the original proxied page as the upstream referrer for CDN media.
+    // The browser's Referer points at /go?url=<original page>, so recover that URL
+    // without forwarding PVPN's own origin or local session cookies upstream.
+    let upstreamReferer = '';
+    let upstreamOrigin = '';
+    try {
+      const browserReferer = new URL(String(req.headers.referer || ''));
+      const originalReferer = browserReferer.searchParams.get('url');
+      if (originalReferer) {
+        const parsedReferer = new URL(originalReferer);
+        upstreamReferer = parsedReferer.href;
+        upstreamOrigin = parsedReferer.origin;
+      }
+    } catch (_) {}
+
+    const requestedDest = String(req.headers['sec-fetch-dest'] || 'document');
+    const isSubresource = /^(?:audio|empty|font|image|script|style|track|video)$/.test(requestedDest);
+
     const response = await fetch(url, {
       method: req.method === 'POST' ? 'POST' : 'GET',
       body: req.method === 'POST' ? new URLSearchParams(req.body || {}).toString() : undefined,
       agent,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept': req.headers.accept || 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
         'Accept-Encoding': 'identity',
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': isSubresource ? requestedDest : 'document',
+        'Sec-Fetch-Mode': isSubresource ? String(req.headers['sec-fetch-mode'] || 'cors') : 'navigate',
+        'Sec-Fetch-Site': isSubresource ? 'cross-site' : 'none',
+        ...(isSubresource ? {} : { 'Sec-Fetch-User': '?1', 'Upgrade-Insecure-Requests': '1' }),
+        ...(req.headers.range ? { 'Range': String(req.headers.range) } : {}),
+        ...(upstreamReferer ? { 'Referer': upstreamReferer } : {}),
+        ...(upstreamOrigin && /^(?:audio|empty|video)$/.test(requestedDest) ? { 'Origin': upstreamOrigin } : {}),
         ...(req.method === 'POST' ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
       },
       redirect: 'manual',
@@ -821,6 +841,7 @@ const fullPageProxyHandler = async (req, res) => {
       }
     }
 
+    res.status(response.status);
     const contentType = response.headers.get('content-type') || 'text/html';
 
     // Strip upstream headers that block iframe embedding
@@ -1289,7 +1310,65 @@ function go(){var u=document.getElementById('vp-url').value.trim();if(u)location
       return;
     }
 
-    // Non-HTML: pass through (with asset cache for speed)
+    // HLS playlists are small text files, but their segment/key URLs must stay
+    // inside /go so the browser preserves referrer and byte-range handling.
+    const isHlsManifest = /(?:application|audio)\/(?:vnd\.apple\.mpegurl|x-mpegurl)/i.test(contentType) || /\.m3u8(?:$|[?#])/i.test(url);
+    if (isHlsManifest) {
+      const wrapHlsUrl = (raw) => {
+        try {
+          const absolute = new URL(String(raw || '').trim(), url).href;
+          const qs = new URLSearchParams({
+            url: absolute,
+            country,
+            premium: isPremium ? '1' : '0',
+          });
+          if (req.query.embedded === '1') qs.set('embedded', '1');
+          return '/go?' + qs.toString();
+        } catch (_) { return raw; }
+      };
+      const manifest = await response.text();
+      const rewrittenManifest = String(manifest)
+        .replace(/URI=("|')([^"']+)\1/gi, (match, quote, raw) => 'URI=' + quote + wrapHlsUrl(raw) + quote)
+        .split(/\r?\n/)
+        .map((line) => {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) return line;
+          return wrapHlsUrl(trimmed);
+        })
+        .join('\n');
+      res.set('Content-Type', contentType);
+      res.set('Cache-Control', 'private, no-store');
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.send(rewrittenManifest);
+      return;
+    }
+
+    // Preserve headers required by HTML5 media seeking and resume playback.
+    ['content-range', 'accept-ranges', 'content-length', 'etag', 'last-modified'].forEach((name) => {
+      const value = response.headers.get(name);
+      if (value) res.setHeader(name, value);
+    });
+    res.set('Content-Type', contentType);
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+
+    const isStreamingMedia = /^(?:video|audio)\//i.test(contentType)
+      || /application\/(?:octet-stream|mp2t)/i.test(contentType)
+      || !!req.headers.range;
+
+    // Do not buffer full videos in Render memory. Pipe them as upstream bytes arrive.
+    if (isStreamingMedia && response.body && typeof response.body.pipe === 'function') {
+      res.set('Cache-Control', 'private, no-store');
+      response.body.on('error', (streamError) => {
+        if (!res.headersSent) res.status(502).send('Media stream error: ' + streamError.message);
+        else res.destroy(streamError);
+      });
+      response.body.pipe(res);
+      return;
+    }
+
+    // Keep the existing small-asset cache for images, CSS, JS and fonts only.
     const cacheKey = url;
     if (ASSET_CACHE_TYPES.test(contentType)) {
       const cached = getCachedAsset(cacheKey);
@@ -1301,11 +1380,8 @@ function go(){var u=document.getElementById('vp-url').value.trim();if(u)location
         return;
       }
     }
-    res.set('Content-Type', contentType);
     res.set('Cache-Control', 'public, max-age=3600');
-    res.set('Access-Control-Allow-Origin', '*');
-    const buf = await response.arrayBuffer();
-    const bufData = Buffer.from(buf);
+    const bufData = Buffer.from(await response.arrayBuffer());
     if (ASSET_CACHE_TYPES.test(contentType)) {
       setCachedAsset(cacheKey, bufData, contentType);
       res.set('X-Proxy-Cache', 'MISS');
