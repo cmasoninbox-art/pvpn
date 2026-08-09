@@ -149,6 +149,20 @@ function setUserCookie(res, username) {
 }
 loadUsers();
 
+const ADMIN_GRANTED_PREMIUM_USERS = new Set(['smokeai']);
+function applyAdminPremiumGrant(user) {
+  if (!user || !ADMIN_GRANTED_PREMIUM_USERS.has(String(user.username || '').toLowerCase())) return false;
+  user.premium = true;
+  user.premiumTier = 'Admin Grant';
+  user.premiumExpires = null;
+  return true;
+}
+let restoredPremiumGrant = false;
+for (const user of Object.values(USERS)) {
+  if (applyAdminPremiumGrant(user)) restoredPremiumGrant = true;
+}
+if (restoredPremiumGrant) saveUsers();
+
 // Admin-only user entitlement control.
 app.get('/admin/user-access', (req, res) => {
   if (!isAdmin(req)) return res.redirect('/admin-login');
@@ -187,7 +201,7 @@ app.post('/api/register', express.json(), (req, res) => {
   const key = username.toLowerCase();
   if (USERS[key]) return res.status(409).json({ ok: false, error: 'Username already taken' });
   const salt = crypto.randomBytes(16).toString('hex');
-  USERS[key] = { username, email, salt, hash: hashPassword(password, salt), premium: false, premiumTier: null, premiumExpires: null, createdAt: Date.now() };
+  USERS[key] = { username, email, salt, hash: hashPassword(password, salt), premium: ADMIN_GRANTED_PREMIUM_USERS.has(key), premiumTier: ADMIN_GRANTED_PREMIUM_USERS.has(key) ? 'Admin Grant' : null, premiumExpires: null, createdAt: Date.now() };
   saveUsers();
   setUserCookie(res, username);
   res.json({ ok: true, user: publicUser(USERS[key]) });
@@ -216,6 +230,7 @@ app.post('/api/login', express.json(), (req, res) => {
   const key = username.toLowerCase();
   const u = USERS[key];
   if (!u || u.hash !== hashPassword(password, u.salt)) return res.status(401).json({ ok: false, error: 'Invalid username or password' });
+  if (applyAdminPremiumGrant(u)) saveUsers();
   setUserCookie(res, u.username);
   res.json({ ok: true, user: publicUser(u) });
 });
