@@ -1357,8 +1357,8 @@
 <div id="extPrompt" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
   <div style="background:#111;color:#ff7a00;padding:30px;border-radius:10px;max-width:420px;margin:20px;border:2px solid #ff7a00;position:relative;">
     <button onclick="closeExtPrompt()" aria-label="Close" title="Close" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#888;font-size:22px;cursor:pointer;line-height:1;padding:4px 6px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">×</button>
-    <h3 style="margin:0 0 15px 0;">Need Full Video Access?</h3>
-    <p style="margin:0 0 15px 0;line-height:1.4;color:#ccc;">Pornhub blocks embedding. Install our extension for inline playback:</p>
+    <h3 style="margin:0 0 15px 0;">Install or Update the PVPN Extension</h3>
+    <p style="margin:0 0 15px 0;line-height:1.4;color:#ccc;">Version 1.1.0 enables the fastest and most reliable direct browsing mode:</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
       <button onclick="dlExt('chrome')" style="background:#ff7a00;color:#000;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Chrome</button>
       <button onclick="dlExt('edge')" style="background:#000;color:#fff;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Edge</button>
@@ -1368,11 +1368,47 @@
     <p style="margin:15px 0 0 0;font-size:12px;color:#888;">1. Click download 2. Enable Developer Mode 3. Load unpacked (Universal installs all browsers automatically)</p>
   </div>
 </div>
-<script>function dlExt(b){var m={'chrome':'/vpn-browser-extension.zip','edge':'/vpn-browser-extension.zip','firefox':'/vpn-browser-extension.xpi','universal':'/PVPN-Browser-Extension-Setup.exe'};window.open(m[b],'_blank');}
-var _extDismissed=false;
-function closeExtPrompt(){_extDismissed=true;var p=document.getElementById('extPrompt');if(p)p.style.display='none';}
-document.getElementById('extPrompt').addEventListener('click',function(e){if(e.target===this)closeExtPrompt();});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeExtPrompt();});
-// Extension installation is user-initiated; do not cover a successfully loaded proxy page.</script>
+<script>
+function dlExt(browser) {
+  const links = {
+    chrome: '/extension/chrome',
+    edge: '/extension/edge',
+    firefox: '/extension/firefox',
+    universal: '/extension/chrome'
+  };
+  window.location.href = links[browser] || links.chrome;
+}
+var _extDismissed = false;
+function closeExtPrompt() {
+  _extDismissed = true;
+  try { sessionStorage.setItem('pvpnExtPromptDismissed', '1'); } catch (_) {}
+  var prompt = document.getElementById('extPrompt');
+  if (prompt) prompt.style.display = 'none';
+}
+function extensionIsCurrent() {
+  var root = document.documentElement;
+  return root.getAttribute('data-pvpn-extension') === 'ready' &&
+    root.getAttribute('data-pvpn-extension-version') === '1.1.0';
+}
+function updateExtensionPrompt() {
+  var prompt = document.getElementById('extPrompt');
+  if (!prompt) return;
+  if (extensionIsCurrent()) {
+    prompt.style.display = 'none';
+    return;
+  }
+  var dismissed = false;
+  try { dismissed = sessionStorage.getItem('pvpnExtPromptDismissed') === '1'; } catch (_) {}
+  if (!_extDismissed && !dismissed) prompt.style.display = 'flex';
+}
+document.getElementById('extPrompt').addEventListener('click', function (event) {
+  if (event.target === this) closeExtPrompt();
+});
+document.addEventListener('keydown', function (event) {
+  if (event.key === 'Escape') closeExtPrompt();
+});
+window.addEventListener('pvpn-extension-ready', updateExtensionPrompt);
+setTimeout(updateExtensionPrompt, 1800);
+</script>
 </body>
 </html>
