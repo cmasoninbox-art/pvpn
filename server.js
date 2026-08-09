@@ -1210,10 +1210,11 @@ function go(){var u=document.getElementById('vp-url').value.trim();if(u)location
       res.removeHeader('x-frame-options');
       res.removeHeader('x-content-type-options');
       if (isEmbedded) {
-        // Permissive CSP for embedded mode — resources are proxied through /go
-        // so everything is same-origin, but we allow * as fallback for any
-        // resources that slip through the rewriter.
-        res.set('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'");
+        // Permissive CSP for embedded mode — proxied resources need * for
+        // images, scripts, XHR/fetch (video API calls), styles, and fonts.
+        // Frame-busting is handled by injected anti-bust JS.
+        res.set('Content-Security-Policy',
+          "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' blob: data:; style-src * 'unsafe-inline' blob: data:; connect-src * data: blob:; font-src * data: blob:; frame-ancestors *;");
       }
       res.send(body + enforcement);
       return;
