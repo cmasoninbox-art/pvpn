@@ -401,6 +401,17 @@ async function proxyHandler(req, res) {
       rewritten = rewritten.replace(/<meta\s+http-equiv=["']X-Frame-Options["'][^>]*>/gi, '');
       rewritten = rewritten.replace(/<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '');
 
+      // Some upstream age-gate labels are populated by scripts that may fail after proxy rewriting.
+      // Restore text and accessible names only when those known choice buttons are empty.
+      rewritten = rewritten.replace(/<button\b([^>]*\bbuttonOver18\b[^>]*)>\s*<\/button>/gi, (m, attrs) => {
+        const aria = /\baria-label\s*=/i.test(attrs) ? '' : ' aria-label="I am 18 or older"';
+        return `<button${attrs}${aria}>I am 18 or older</button>`;
+      });
+      rewritten = rewritten.replace(/<button\b([^>]*\bbuttonUnder18\b[^>]*)>\s*<\/button>/gi, (m, attrs) => {
+        const aria = /\baria-label\s*=/i.test(attrs) ? '' : ' aria-label="I am under 18"';
+        return `<button${attrs}${aria}>I am under 18</button>`;
+      });
+
       // Strip Pornhub's hotlinker frame-bust script. The hotlinkerredirects
       // code is in a specific <script> block — match only that block, not all
       // content from the first <script> to the hotlinker block (old regex
