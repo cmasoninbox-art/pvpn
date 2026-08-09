@@ -449,7 +449,7 @@
             </div>
           </div>
         </div>
-        <iframe id="frame" sandbox="allow-forms allow-scripts allow-popups allow-presentation allow-same-origin" allow="fullscreen"></iframe>
+        <iframe id="frame" sandbox="allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-modals allow-downloads" allow="fullscreen"></iframe>
         <div id="fallbackMsg" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#111; color:#ff7a00; padding:20px; border:2px solid #ff7a00; border-radius:8px; z-index:10000; max-width:400px; text-align:center;">
           <h3 style="margin:0 0 10px;">Content Blocked</h3>
           <p style="margin:0 0 15px;">This site prevents embedding. <a href="#" id="openInTab" style="color:#ff7a00; text-decoration:underline; cursor:pointer;">Open in new tab</a></p>
@@ -1357,7 +1357,7 @@
   <div style="background:#111;color:#ff7a00;padding:30px;border-radius:10px;max-width:100%;margin:0;border:2px solid #ff7a00;position:relative;">
     <button onclick="closeExtPrompt()" aria-label="Close" title="Close" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#888;font-size:22px;cursor:pointer;line-height:1;padding:4px 6px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">×</button>
     <h3 style="margin:0 0 15px 0;">Install or Update the PVPN Extension</h3>
-    <p style="margin:0 0 15px 0;line-height:1.4;color:#ccc;">Version 1.1.0 enables the fastest and most reliable direct browsing mode:</p>
+    <p style="margin:0 0 15px 0;line-height:1.4;color:#ccc;">Version 1.1.1 enables the fastest and most reliable direct browsing mode:</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
       <button onclick="dlExt('chrome')" style="background:#ff7a00;color:#000;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Chrome</button>
       <button onclick="dlExt('edge')" style="background:#000;color:#fff;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Edge</button>
@@ -1387,7 +1387,7 @@ function closeExtPrompt() {
 function extensionIsCurrent() {
   var root = document.documentElement;
   return root.getAttribute('data-pvpn-extension') === 'ready' &&
-    root.getAttribute('data-pvpn-extension-version') === '1.1.0';
+    root.getAttribute('data-pvpn-extension-version') === '1.1.1';
 }
 function updateExtensionPrompt() {
   var prompt = document.getElementById('extPrompt');
