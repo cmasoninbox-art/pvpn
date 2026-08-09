@@ -1200,10 +1200,19 @@
       if (e.key === 'Enter') document.getElementById('navForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
     });
 
+    function proxyDisplayUrl(raw) {
+      try {
+        const u = new URL(raw, location.origin);
+        const target = u.searchParams.get('url');
+        if (target) { try { return new URL(target).host; } catch(_) { return target; } }
+      } catch(_) {}
+      return raw;
+    }
+
     frame.addEventListener('load', () => {
       try {
         const u = frame.contentWindow.location.href;
-        if (u && u !== 'about:blank') display.textContent = u;
+        if (u && u !== 'about:blank') display.textContent = proxyDisplayUrl(u);
       } catch (_) {
         // cross-origin frames throw; leave display as-is
       }
