@@ -1,24 +1,22 @@
-// Content script - runs in page context
-// Allows bidirectional communication with the main page
-
-let isActive = true;
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'PING') {
-    sendResponse({ status: 'ACTIVE', version: '1.0.0' });
-  } else if (message.type === 'PING_RESPONSE') {
-    // Direct response handling
-    if (typeof sendResponse === 'function') {
-      sendResponse({ status: 'ACTIVE' });
-    }
+// PVPN companion handshake.
+// A DOM marker is used because extension content scripts run in an isolated world.
+(function () {
+  const VERSION = '1.1.0';
+  function announce() {
+    if (!document.documentElement) return;
+    document.documentElement.setAttribute('data-pvpn-extension', 'ready');
+    document.documentElement.setAttribute('data-pvpn-extension-version', VERSION);
+    window.dispatchEvent(new CustomEvent('pvpn-extension-ready', {
+      detail: { version: VERSION }
+    }));
   }
-  return true; // Keep message channel open
-});
-
-// Notify page that extension is ready
-window.addEventListener('load', () => {
-  chrome.runtime.sendMessage({ type: 'EXTENSION_READY' }, (response) => {
-    // Extension initialized
-    isActive = true;
-  });
-});
+  announce();
+  if (!document.documentElement) {
+    new MutationObserver(function (_, observer) {
+      if (document.documentElement) {
+        announce();
+        observer.disconnect();
+      }
+    }).observe(document, { childList: true, subtree: true });
+  }
+})();
