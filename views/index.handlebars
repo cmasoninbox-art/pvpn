@@ -250,6 +250,31 @@
     .paid-ad img { display: block; width: 100%; }
     .paid-ad .paid-ad-label { display: block; padding: 6px 10px; color: var(--accent, #ff7a00); font-weight: 700; text-transform: uppercase; font-size: 12px; }
 
+    /* Genuine in-house advertising; third-party paid ads use .paid-ad above. */
+    .house-ad {
+      box-sizing: border-box;
+      color: #fff !important;
+      text-decoration: none;
+      background: linear-gradient(155deg, #1c1c1c 0%, #090909 65%, #231100 100%);
+      border: 1px solid rgba(255, 122, 0, 0.72);
+      border-radius: 12px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.45);
+      overflow: hidden;
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    .house-ad:hover { transform: translateY(-3px); border-color: #ff9d18; box-shadow: 0 16px 34px rgba(255,122,0,.16); }
+    .house-ad-side { min-height: 330px; margin: 10px; padding: 18px 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; }
+    .house-ad-kicker { color: #777; font-size: 9px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    .house-ad-icon { font-size: 42px; filter: drop-shadow(0 5px 12px rgba(255,122,0,.25)); }
+    .house-ad strong { color: #ff9000; font-size: 18px; text-transform: uppercase; }
+    .house-ad span:not(.house-ad-kicker):not(.house-ad-icon) { color: #bdbdbd; font-size: 12px; line-height: 1.45; }
+    .house-ad b { margin-top: 6px; color: #050505; background: #ff9000; padding: 8px 12px; border-radius: 999px; font-size: 11px; text-transform: uppercase; }
+    .house-ad-bottom { width: min(920px, calc(100% - 24px)); margin: 12px auto; padding: 12px 16px; display: flex; align-items: center; justify-content: center; gap: 14px; }
+    .house-ad-bottom .house-ad-icon { font-size: 28px; }
+    .house-ad-bottom span { display: flex; flex-direction: column; }
+    .house-ad-bottom small { color: #999; font-size: 11px; margin-top: 2px; }
+    @media (max-width: 760px) { .house-ad-bottom { align-items: flex-start; text-align: left; flex-wrap: wrap; } .house-ad-bottom b { margin-left: auto; } }
+
     /* Big red END SESSION floating button (bottom-left) */
     #floatingLogout {
       position: fixed;
