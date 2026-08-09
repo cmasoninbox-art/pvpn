@@ -2115,6 +2115,10 @@ async function startApplication() {
     import('wisp-server-node'),
   ]);
 
+  app.use('/uv/uv.sw.js', (req, res, next) => {
+    res.setHeader('Service-Worker-Allowed', '/');
+    next();
+  });
   app.use('/uv/', express.static(uvPath));
   app.use('/epoxy/', express.static(epoxyPath));
   app.use('/baremux/', express.static(baremuxPath));
