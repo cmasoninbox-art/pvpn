@@ -703,6 +703,15 @@
       const inputEl = document.getElementById('url');
       if (inputEl) { inputEl.disabled = false; inputEl.placeholder = 'Enter website or search...'; }
       removeBrowserGate();
+      const browserFrame = document.getElementById('frame');
+      if (browserFrame && !browserFrame.getAttribute('src')) {
+        const countryEl = document.getElementById('country');
+        const country = countryEl ? (countryEl.value || 'us') : 'us';
+        browserFrame.src = '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') +
+          '&country=' + encodeURIComponent(country) + '&premium=1';
+        const displayEl = document.getElementById('displayUrl');
+        if (displayEl) displayEl.textContent = 'pornhub.com';
+      }
     }
 
     if (registerForm) {
@@ -744,7 +753,15 @@
       if (d && d.ok && d.user) {
         applyUserState(d.user);
         const lb = document.getElementById('logoutBtn'); if (lb) lb.style.display = 'block';
-        if (d.user.premium) unlockPremiumUI();
+        if (d.user.premium) {
+          unlockPremiumUI();
+          applySearchLock();
+          applyMediaGate();
+          applyVpnGate();
+          applyTease();
+        }
+      } else {
+        applyUserState(null);
       }
     }).catch(() => {});
 
@@ -1046,8 +1063,8 @@
         vpnSel.disabled = !premium;
       }
       if (countrySel) {
-        countrySel.value = 'us';
-        countrySel.disabled = true;
+        if (!premium) countrySel.value = 'us';
+        countrySel.disabled = !premium;
       }
       if (vpnNote) vpnNote.textContent = premium ? 'Direct egress — no VPN/Tor' : 'Free: direct egress — upgrade for VPN';
       setDirectMode();
