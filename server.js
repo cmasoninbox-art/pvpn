@@ -17,13 +17,6 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-07-29.d
 const app = express();
 app.use(express.json());
 
-// Required by the browser-side Epoxy transport (SharedArrayBuffer/WebAssembly).
-app.use((req, res, next) => {
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-  next();
-});
-
 
 app.engine('handlebars', exphbs.engine({ defaultLayout: false }));
 app.set('view engine', 'handlebars');
