@@ -2102,6 +2102,39 @@
       return '/proxy?url=' + encodeURIComponent(query) + '&country=' + encodeURIComponent(country) + '&premium=' + (premium ? '1' : '0');
     }
 
+    function showBrowserHome() {
+      const browserFrame = document.getElementById('frame');
+      if (!browserFrame) return;
+      browserFrame.dataset.browserHome = '1';
+      browserFrame.src = 'about:blank';
+      const homeHtml = [
+        "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>",
+        "*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at 50% 0,#2a1806 0,#0b0b0b 45%,#050505 100%);color:#fff}",
+        "body{display:grid;place-items:center;padding:28px}.home{width:min(1040px,100%)}.eyebrow{color:#ff9000;font-size:12px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;text-align:center}.title{text-align:center;font-size:clamp(25px,5vw,52px);line-height:1;margin:10px 0 8px}.sub{text-align:center;color:#aaa;margin:0 0 24px}",
+        ".sites{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.site{appearance:none;border:1px solid #333;border-radius:18px;min-height:220px;padding:18px 10px;background:linear-gradient(145deg,#1b1b1b,#0b0b0b);color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 15px 40px #0008;transition:.2s transform,.2s border-color}.site:hover,.site:focus{transform:translateY(-5px);border-color:#ff9000;outline:none}.site.featured{border:2px solid #ff9000;background:linear-gradient(145deg,#2b1a05,#111)}",
+        ".logo{font-size:clamp(15px,3vw,30px);font-weight:1000;letter-spacing:-.04em;white-space:nowrap}.badge{margin-top:10px;font-size:11px;font-weight:800;letter-spacing:.08em;color:#aaa}.featured .badge{color:#ff9d18}.accent{color:#ff9000}.red{color:#ee2424}.footer{text-align:center;color:#686868;font-size:11px;margin-top:18px}@media(max-width:520px){body{padding:14px}.sites{gap:7px}.site{min-height:150px;border-radius:12px;padding:9px 4px}.title{font-size:26px}.sub{font-size:12px;margin-bottom:16px}.logo{font-size:14px}.badge{font-size:8px}.footer{font-size:9px}}",
+        "</style></head><body><main class='home'><div class='eyebrow'>PVPN Browser</div><h1 class='title'>Choose where to browse</h1><p class='sub'>Three quick starts. Your existing privacy and quality settings stay active.</p><div class='sites'>",
+        "<button type='button' class='site' onclick='parent.openBrowserChoice(\"https://www.xnxx.com\",\"XNXX\")'><span class='logo'>XN<span class='red'>XX</span></span><span class='badge'>OPEN XNXX</span></button>",
+        "<button type='button' class='site featured' onclick='parent.openBrowserChoice(\"https://www.pornhub.com\",\"Pornhub\")'><span class='logo'>PORN<span class='accent'>HUB</span></span><span class='badge'>FEATURED · OPEN PORNHUB</span></button>",
+        "<button type='button' class='site' onclick='parent.openBrowserChoice(\"https://www.redtube.com\",\"RedTube\")'><span class='logo'>RED<span class='red'>TUBE</span></span><span class='badge'>OPEN REDTUBE</span></button>",
+        "</div><div class='footer'>18+ only · Availability depends on your location and the destination site.</div></main></body></html>"
+      ].join('');
+      browserFrame.srcdoc = homeHtml;
+      input.value = '';
+      display.textContent = 'Browser Home';
+      dot.className = 'dot';
+      status.textContent = 'Choose a site';
+    }
+
+    window.openBrowserChoice = function(url, label) {
+      const browserFrame = document.getElementById('frame');
+      browserFrame.dataset.browserHome = '0';
+      browserFrame.removeAttribute('srcdoc');
+      input.value = url;
+      display.textContent = label + ' · ' + new URL(url).hostname;
+      browserFrame.src = buildProxyUrl(url);
+      setConnected();
+    };
     document.getElementById('fsBtn').addEventListener('click', () => {
       const iframe = document.getElementById('frame');
       if (iframe.requestFullscreen) iframe.requestFullscreen();
@@ -2111,7 +2144,8 @@
 
     document.getElementById('refreshBtn').addEventListener('click', () => {
       const iframe = document.getElementById('frame');
-      iframe.src = iframe.src;
+      if (iframe.dataset.browserHome === '1') showBrowserHome();
+      else iframe.src = iframe.src;
     });
 
     document.getElementById('openTabBtn').addEventListener('click', () => {
@@ -2125,15 +2159,23 @@
       window.open(src, '_blank');
     });
 
-    document.getElementById('homeBtn').addEventListener('click', () => {
-      document.getElementById('url').value = '';
-      document.getElementById('frame').src = 'about:blank';
-      display.textContent = '';
-    });
+    document.getElementById('homeBtn').addEventListener('click', showBrowserHome);
 
     const zoomFrame = document.getElementById('frame');
     let zoomLevel = window.matchMedia('(max-width: 760px)').matches ? 0.25 : 1;
     function applyFrameZoom() {
+      if (zoomFrame.dataset.browserHome === '1') {
+        try {
+          const homeDoc = zoomFrame.contentDocument;
+          if (homeDoc && homeDoc.documentElement) {
+            homeDoc.documentElement.style.setProperty('zoom', '1', 'important');
+            homeDoc.documentElement.style.setProperty('width', '100%', 'important');
+          }
+        } catch (e) {}
+        zoomFrame.style.removeProperty('zoom');
+        zoomFrame.style.width = '100%';
+        return;
+      }
       try {
         const frameDoc = zoomFrame.contentDocument;
         if (frameDoc && frameDoc.documentElement && zoomFrame.src !== 'about:blank') {
@@ -2376,17 +2418,8 @@
     applyTease();
     applyAdButtons();
 
-    // Auto-load Pornhub on page start (no click needed)
-    (function autoLoadBrowser() {
-      const frame = document.getElementById('frame');
-      const free = localStorage.getItem('freeAccess') === '1';
-      const premium = localStorage.getItem('premium') === '1';
-      if (frame && (free || premium)) {
-        frame.src = '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') + '&country=us&premium=' + (premium ? '1' : '0');
-        const du = document.getElementById('displayUrl');
-        if (du) du.textContent = 'pornhub.com';
-      }
-    })();
+    // Start on the three-site browser home screen.
+    showBrowserHome();
     window.addEventListener('storage', () => { applySearchLock(); applyMediaGate(); applyVpnGate(); applyTease(); applyAdButtons(); });
 
     document.getElementById('navForm').addEventListener('submit', function(e) {
