@@ -494,23 +494,6 @@ async function proxyHandler(req, res) {
         if (u.host === req.headers.host) return raw; // already our proxy
         return '/proxy?url=' + encodeURIComponent(u.href);
       };
-      // Eagerly load deferred thumbnails so visible cards do not require a hover.
-      rewritten = rewritten.replace(/<img\b[^>]*>/gi, (tag) => {
-        const deferred = tag.match(/\s(data-src|data-thumb_url|data-original)=(["'])([^"']+)\2/i);
-        if (!deferred) return tag;
-        let raw = deferred[3];
-        try { raw = new URL(raw, base.href).href; } catch (_) {}
-        const eager = proxyWrap(raw.startsWith('//') ? 'https:' + raw : raw);
-        tag = tag.replace(deferred[0], ' ' + deferred[1] + '=' + deferred[2] + eager + deferred[2]);
-        const current = tag.match(/\ssrc=(["'])([^"']*)\1/i);
-        if (!current) {
-          tag = tag.replace(/<img\b/i, '<img src="' + eager + '"');
-        } else if (!current[2] || current[2].startsWith('data:image/')) {
-          tag = tag.replace(current[0], ' src=' + current[1] + eager + current[1]);
-        }
-        tag = tag.replace(/\sloading=(["'])lazy\1/i, ' loading="eager"');
-        return tag;
-      });
       // Second pass: catch escaped-slash AND url-encoded URLs (Pornhub double-encodes
       // host refs as %2F%2Fwww.pornhub.com / https%3A%2F%2F...) that sit anywhere in the
       // document. These still leak the real domain once the browser decodes them.
@@ -542,11 +525,6 @@ async function proxyHandler(req, res) {
       rewritten = rewritten.replace(/\/\*__PVPN_SCRIPT_BODY_(\d+)__\*\//g, (m, index) => {
         return protectedScriptBodies[Number(index)] || '';
       });
-      // Persist the user's Pornhub age choice on the proxy host.
-      rewritten = rewritten.split("setCookieAdvanced('accessAgeDisclaimerPH', '2', 1/24, '/', 'pornhub.com');").join("document.cookie = 'accessAgeDisclaimerPH=2; path=/; max-age=3600; SameSite=Lax';");
-      // Hide Pornhub's quality selector; PVPN remains the only quality control.
-      const playerQualityStyle = '<style id="pvpn-hide-site-quality">.mgp_btn-quality,.mgp_quality-btn,.mgp_settings-menu-quality-item,.mgp_qualityDiv,.mgp_streamingQuality{display:none!important;visibility:hidden!important;pointer-events:none!important}</style>';
-      rewritten = rewritten.replace(/<\/head>/i, playerQualityStyle + '</head>');
       // CSP: everything flows through our origin so framed sites can't load the real domain
       // (which would serve X-Frame-Options: DENY and break framing). Sandbox already allows
       // scripts/forms/same-origin/popups.
