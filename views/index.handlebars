@@ -462,25 +462,10 @@
             let loadFailed = false;
             
             if (frame && fallback) {
-              setTimeout(() => {
-                if (frame.contentWindow && frame.contentWindow.document) {
-                  try {
-                    const title = frame.contentWindow.document.title || '';
-                    if (title.toLowerCase().includes('blocked') || title.toLowerCase().includes('refused') || !frame.src.includes('proxy?url=')) {
-                      showFallback();
-                    }
-                  } catch (e) {
-                    showFallback();
-                  }
-                } else {
-                  showFallback();
-                }
-              }, 3000);
-              
-              window.addEventListener('message', function(e) {
-                if (e.data && (e.data.includes('X-Frame-Options') || e.data.includes('blocked'))) {
-                  showFallback();
-                }
+              frame.addEventListener('load', function () {
+                loadFailed = false;
+                fallback.style.display = 'none';
+                frame.style.display = 'block';
               });
             }
             
