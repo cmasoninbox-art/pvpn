@@ -2087,8 +2087,17 @@ app.get('/uv/uv.config.js', (req, res) => {
     "  handler: '/uv/uv.handler.js',",
     "  bundle: '/uv/uv.bundle.js',",
     "  config: '/uv/uv.config.js',",
-    "  sw: '/uv/uv.sw.js'",
+    "  sw: '/uv/sw.js'",
     '};'
+  ].join('\n'));
+});
+
+app.get('/uv/sw.js', (req, res) => {
+  res.setHeader('Service-Worker-Allowed', '/');
+  res.type('application/javascript').send([
+    "importScripts('/uv/uv.bundle.js', '/uv/uv.config.js', '/uv/uv.sw.js');",
+    'const uvWorker = new UVServiceWorker();',
+    "self.addEventListener('fetch', (event) => event.respondWith(uvWorker.fetch(event)));"
   ].join('\n'));
 });
 
