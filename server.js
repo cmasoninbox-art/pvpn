@@ -149,6 +149,34 @@ function setUserCookie(res, username) {
 }
 loadUsers();
 
+// Admin-only user entitlement control.
+app.get('/admin/user-access', (req, res) => {
+  if (!isAdmin(req)) return res.redirect('/admin-login');
+  res.send(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>User Premium Access</title><style>
+  body{margin:0;background:#050505;color:#fff;font-family:Arial,sans-serif;min-height:100vh;display:grid;place-items:center}
+  .card{width:min(420px,calc(100% - 32px));box-sizing:border-box;padding:28px;border:1px solid #333;border-radius:16px;background:#151515}
+  h1{margin:0 0 8px;font-size:24px}p{color:#aaa;margin:0 0 18px}label{display:block;margin-bottom:7px;color:#ff9000;font-weight:800}
+  input{box-sizing:border-box;width:100%;height:46px;padding:0 13px;border:1px solid #444;border-radius:10px;background:#090909;color:#fff;font-size:16px}
+  button{width:100%;height:46px;margin-top:12px;border:0;border-radius:10px;background:#ff9000;color:#050505;font-weight:900;cursor:pointer}
+  a{display:block;margin-top:16px;color:#ff9000;text-align:center}</style></head><body><form class="card" method="post" action="/admin/user-access">
+  <h1>Premium Account Access</h1><p>Grant permanent premium access to an existing user.</p>
+  <label for="username">Username</label><input id="username" name="username" autocomplete="off" required>
+  <button type="submit">Grant Premium</button><a href="/admin">Back to Admin</a></form></body></html>`);
+});
+
+app.post('/admin/user-access', express.urlencoded({ extended: false }), (req, res) => {
+  if (!isAdmin(req)) return res.status(401).send('Admin login required');
+  const key = String(req.body.username || '').trim().toLowerCase();
+  const user = USERS[key];
+  if (!user) return res.status(404).send(`<!DOCTYPE html><html><body style="background:#050505;color:#fff;font-family:Arial;padding:30px"><h1>User not found</h1><p>No account exists for <b>${key.replace(/[<>&"']/g, '')}</b>.</p><a style="color:#ff9000" href="/admin/user-access">Try again</a></body></html>`);
+  user.premium = true;
+  user.premiumTier = 'Admin Grant';
+  user.premiumExpires = null;
+  saveUsers();
+  res.send(`<!DOCTYPE html><html><body style="background:#050505;color:#fff;font-family:Arial;padding:30px"><h1 style="color:#ff9000">Premium granted</h1><p><b>${user.username}</b> now has permanent premium access.</p><a style="color:#ff9000" href="/admin/user-access">Manage another user</a></body></html>`);
+});
+
 app.post('/api/register', express.json(), (req, res) => {
   const username = String(req.body.username || '').trim();
   const email = String(req.body.email || '').trim();
@@ -168,6 +196,23 @@ app.post('/api/register', express.json(), (req, res) => {
 app.post('/api/login', express.json(), (req, res) => {
   const username = String(req.body.username || '').trim();
   const password = String(req.body.password || '');
+
+  // Admin credentials also work in the normal website login. The admin
+  // session is recognized by /api/me, /api/user-tier and every premium gate.
+  if (username === ADMIN_USER && password === ADMIN_PASS) {
+    res.set('Set-Cookie', cookie.serialize('admin_sess', makeSessionToken(ADMIN_USER), {
+      httpOnly: true, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24
+    }));
+    return res.json({ ok: true, user: {
+      username: ADMIN_USER,
+      email: '',
+      premium: true,
+      premiumTier: 'admin',
+      premiumExpires: null,
+      admin: true
+    }});
+  }
+
   const key = username.toLowerCase();
   const u = USERS[key];
   if (!u || u.hash !== hashPassword(password, u.salt)) return res.status(401).json({ ok: false, error: 'Invalid username or password' });
