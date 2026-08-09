@@ -401,11 +401,14 @@ async function proxyHandler(req, res) {
       rewritten = rewritten.replace(/<meta\s+http-equiv=["']X-Frame-Options["'][^>]*>/gi, '');
       rewritten = rewritten.replace(/<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '');
 
-      // Strip Pornhub's hotlinker frame-bust script. It decodes the real domain
-      // at RUNTIME (atob) and injects `window.location.href = <real domain>` via a
-      // dynamically-appended script — so URL-rewrite regexes can't see the target
-      // and the client anti-bust can be raced. Marker "hotlinkerredirects" is unique.
-      rewritten = rewritten.replace(/<script\b[^>]*>[\s\S]*?hotlinkerredirects[\s\S]*?<\/script>/gi, '');
+      // Strip Pornhub's hotlinker frame-bust script. The hotlinkerredirects
+      // code is in a specific <script> block — match only that block, not all
+      // content from the first <script> to the hotlinker block (old regex
+      // consumed 998KB by greedily crossing script boundaries).
+      rewritten = rewritten.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (m, code) => {
+        if (code && code.includes('hotlinkerredirects')) return '';
+        return m;
+      });
 
       // Inject media-enforcement: cap video resolution to the enforced quality,
       // force playback rate and subtitle mode on every <video>, even ones created later.
@@ -942,10 +945,16 @@ const fullPageProxyHandler = async (req, res) => {
         return m;
       });
 
-      // Strip Pornhub's hotlinker frame-bust script (same as /proxy handler):
-      // runtime atob-decoded redirect target, injected via dynamic script —
-      // invisible to static URL rewrites, so remove the whole script block.
-      body = body.replace(/<script\b[^>]*>[\s\S]*?hotlinkerredirects[\s\S]*?<\/script>/gi, '');
+      // Strip Pornhub's hotlinker frame-bust script. The hotlinkerredirects
+      // code lives in a small script block near the end of the page. We must
+      // NOT use a regex that starts from the first <script> tag (the old regex
+      // consumed 998KB by matching across the entire document). Instead, match
+      // only the specific hotlinker block: a <script> whose content contains
+      // "hotlinkerredirects".
+      body = body.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (m, code) => {
+        if (code && code.includes('hotlinkerredirects')) return '';
+        return m;
+      });
 
       // Rewrite URLs inside <script> blocks
       body = body.replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi, (m, open, code, close) => {
