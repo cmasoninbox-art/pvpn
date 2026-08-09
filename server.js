@@ -2110,7 +2110,7 @@ app.get('/extension/:browser', (req, res, next) => {
   const sourceBrowser = browser === 'firefox' ? 'firefox' : 'chrome';
   const sourceDir = path.join(__dirname, 'extension', sourceBrowser);
   const filename = browser === 'firefox'
-    ? 'pvpn-firefox-extension-v1.1.0.xpi'
+    ? 'pvpn-firefox-extension-v1.1.0.zip'
     : 'pvpn-' + browser + '-extension-v1.1.0.zip';
 
   res.attachment(filename);
