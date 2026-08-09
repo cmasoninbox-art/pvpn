@@ -176,11 +176,24 @@ app.post('/api/login', express.json(), (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => {
-  res.set('Set-Cookie', cookie.serialize('pvpn_sess', '', { path: '/', maxAge: 0 }));
+  res.set('Set-Cookie', [
+    cookie.serialize('pvpn_sess', '', { path: '/', maxAge: 0 }),
+    cookie.serialize('admin_sess', '', { path: '/', maxAge: 0 })
+  ]);
   res.json({ ok: true });
 });
 
 app.get('/api/me', (req, res) => {
+  if (isAdmin(req)) {
+    return res.json({ ok: true, user: {
+      username: ADMIN_USER,
+      email: '',
+      premium: true,
+      premiumTier: 'admin',
+      premiumExpires: null,
+      admin: true
+    }});
+  }
   const u = parseUser(req);
   res.json({ ok: true, user: u ? publicUser(u) : null });
 });
@@ -190,14 +203,16 @@ app.get('/api/me', (req, res) => {
 // header stripping. Defaults to 'free' (rules enabled) when logged out
 // or premium status is unknown — fail-open so free users always work.
 app.get('/api/user-tier', (req, res) => {
+  const admin = isAdmin(req);
   const u = parseUser(req);
-  const premium = !!(u && u.premium);
+  const premium = admin || !!(u && u.premium);
   res.json({
     ok: true,
-    tier: premium ? 'premium' : 'free',
+    tier: admin ? 'admin' : (premium ? 'premium' : 'free'),
     premium,
-    premiumTier: u && u.premiumTier ? u.premiumTier : null,
-    premiumExpires: u && u.premiumExpires ? u.premiumExpires : null
+    admin,
+    premiumTier: admin ? 'admin' : (u && u.premiumTier ? u.premiumTier : null),
+    premiumExpires: admin ? null : (u && u.premiumExpires ? u.premiumExpires : null)
   });
 });
 
