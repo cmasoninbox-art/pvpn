@@ -1428,6 +1428,32 @@
       .mobile-art-menu span { display: none; }
       .toolbar { padding-inline: 8px; }
     }
+
+    /* Compact Santa artwork override */
+    @media (max-width: 760px) {
+      .ad-top, #ad-slot-top {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: 300px !important;
+        background: #090909;
+      }
+      .ad-top a, #ad-slot-top a { height: auto !important; }
+      .ad-top .top-banner, #ad-slot-top .top-banner {
+        width: 100% !important;
+        height: auto !important;
+        max-height: 300px !important;
+        object-fit: contain !important;
+        object-position: center !important;
+      }
+      .mobile-art-overlay { padding-block: 12px; }
+      .mobile-art-brand strong { font-size: 22px; }
+    }
+    @media (max-width: 430px) {
+      .ad-top, #ad-slot-top { max-height: 200px !important; }
+      .ad-top .top-banner, #ad-slot-top .top-banner { max-height: 200px !important; }
+      .mobile-art-brand small { display: none; }
+      .mobile-art-brand strong { font-size: 18px; }
+    }
   </style>
 </head>
 <body class="theme-{{theme}}">
