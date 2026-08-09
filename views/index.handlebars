@@ -449,7 +449,7 @@
             </div>
           </div>
         </div>
-        <iframe id="frame" sandbox="allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-modals allow-downloads" allow="fullscreen"></iframe>
+        <iframe id="frame" sandbox="allow-forms allow-scripts allow-popups allow-presentation allow-same-origin" allow="fullscreen"></iframe>
         <div id="fallbackMsg" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#111; color:#ff7a00; padding:20px; border:2px solid #ff7a00; border-radius:8px; z-index:10000; max-width:400px; text-align:center;">
           <h3 style="margin:0 0 10px;">Content Blocked</h3>
           <p style="margin:0 0 15px;">This site prevents embedding. <a href="#" id="openInTab" style="color:#ff7a00; text-decoration:underline; cursor:pointer;">Open in new tab</a></p>
@@ -463,11 +463,10 @@
             
             if (frame && fallback) {
               setTimeout(() => {
-                if ((document.documentElement.dataset.proxyMode || '').startsWith('extension-')) return;
                 if (frame.contentWindow && frame.contentWindow.document) {
                   try {
                     const title = frame.contentWindow.document.title || '';
-                    if (title.toLowerCase().includes('blocked') || title.toLowerCase().includes('refused') || !(frame.src.includes('/service/') || frame.src.includes('/proxy?url=') || frame.src.includes('/go?url=') || (document.documentElement.dataset.proxyMode || '').startsWith('extension-')) {
+                    if (title.toLowerCase().includes('blocked') || title.toLowerCase().includes('refused') || !frame.src.includes('proxy?url=')) {
                       showFallback();
                     }
                   } catch (e) {
@@ -524,34 +523,6 @@
       </div>
     </footer>
   </div>
-
-  <script src="/baremux/index.js"></script>
-  <script src="/uv/uv.bundle.js"></script>
-  <script src="/uv/uv.config.js"></script>
-  <script>
-    // Start the durable service-worker proxy once for the whole browsing session.
-    document.documentElement.dataset.proxyEngine = 'starting';
-    window.pvpnProxyReady = (async function () {
-      if (!('serviceWorker' in navigator)) throw new Error('Service workers are not supported');
-      await navigator.serviceWorker.register(__uv$config.sw, { scope: __uv$config.prefix });
-      await navigator.serviceWorker.ready;
-      const connection = new BareMux.BareMuxConnection('/baremux/worker.js');
-      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      await connection.setTransport('/epoxy/index.mjs', [{
-        wisp: protocol + '//' + location.host + '/wisp/'
-      }]);
-      document.documentElement.dataset.proxyEngine = 'ready';
-      return true;
-    })().catch(function (err) {
-      document.documentElement.dataset.proxyEngine = 'error:' + (err && err.message ? err.message : String(err));
-      console.error('[proxy] Service-worker engine failed:', err);
-      return false;
-    });
-
-    window.buildServiceWorkerProxyUrl = function (target) {
-      return __uv$config.prefix + __uv$config.encodeUrl(target);
-    };
-  </script>
 
   <script>
     // Disable right-click everywhere on this page
@@ -681,7 +652,7 @@
           // Use /go with embedded=1 — full URL rewriting (all links → /go?url=…)
           // plus anti-bust injection.  No frame-bust because navigation stays
           // same-origin (everything is /go?url=… on our host).
-          const proxyUrl = buildProxyUrl('https://www.pornhub.com');
+          const proxyUrl = '/go?url=' + encodeURIComponent('https://www.pornhub.com') + '&embedded=1&country=us&premium=0';
           frame.dataset.proxyUrl = proxyUrl;
           frame.dataset.loading = '1';
           frame.src = proxyUrl;
@@ -696,7 +667,6 @@
     const frameWatchdog = setInterval(() => {
       const frame = document.getElementById('frame');
       if (!frame || !frame.dataset.proxyUrl) return;
-      if ((document.documentElement.dataset.proxyMode || '').startsWith('extension-')) return;
       if (frame.dataset.loading === '1') return;  // skip during active fetch
       let sameOrigin = true;
       try { void frame.contentWindow.location.href; } catch (_) { sameOrigin = false; }
@@ -714,7 +684,7 @@
         frameEl.dataset.loading = '0';
         try {
           const loc = frameEl.contentWindow.location.href;
-          if (loc && (loc.indexOf('/proxy') > -1 || loc.indexOf('/go') > -1 || loc.indexOf('/service/') > -1)) frameEl.dataset.proxyUrl = loc;
+          if (loc && (loc.indexOf('/proxy') > -1 || loc.indexOf('/go') > -1)) frameEl.dataset.proxyUrl = loc;
         } catch (_) { /* cross-origin — watchdog handles */ }
       });
     }
@@ -886,7 +856,7 @@
       const target = OFFER_URLS[key] || 'https://example.com';
       menuDropdown.classList.remove('open');
       display.textContent = target;
-      frame.src = buildProxyUrl(target);
+      frame.src = '/proxy?url=' + encodeURIComponent(target);
       setConnected();
     });
 
@@ -923,18 +893,14 @@
     localProxy.addEventListener('input', saveSettings);
 
     function buildProxyUrl(query) {
-      try {
-        const supported = ['pornhub.com', 'xvideos.com', 'xnxx.com', 'youporn.com'];
-        const host = new URL(query).hostname.toLowerCase();
-        const supportedHost = supported.some(domain => host === domain || host.endsWith('.' + domain));
-        if (supportedHost) {
-          const detected = document.documentElement.getAttribute('data-pvpn-extension') === 'ready';
-          document.documentElement.dataset.proxyMode = detected ? 'extension-direct' : 'extension-required';
-          return query;
-        }
-      } catch (_) {}
-      document.documentElement.dataset.proxyMode = 'service-worker';
-      return window.buildServiceWorkerProxyUrl(query);
+      const countrySel = document.getElementById('country');
+      if (vpnMode.value === 'local') {
+        const base = (localProxy.value || '').trim().replace(/\/$/, '');
+        return base + (base ? '/' : '') + query;
+      }
+      const premium = localStorage.getItem('premium') === '1';
+      const country = premium ? (countrySel.value || 'us') : 'us';
+      return '/proxy?url=' + encodeURIComponent(query) + '&country=' + encodeURIComponent(country) + '&premium=' + (premium ? '1' : '0');
     }
 
     document.getElementById('fsBtn').addEventListener('click', () => {
@@ -954,7 +920,7 @@
       const display = document.getElementById('displayUrl');
       let src = iframe.src;
       if (!src || src === 'about:blank' || src === window.location.href) {
-        const fallback = display.textContent && display.textContent !== 'No page loaded' ? buildProxyUrl(display.textContent) : buildProxyUrl('https://www.pornhub.com');
+        const fallback = display.textContent && display.textContent !== 'No page loaded' ? display.textContent : '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') + '&country=us&premium=0';
         src = fallback.startsWith('http') ? fallback : window.location.origin + fallback;
       }
       window.open(src, '_blank');
@@ -1124,7 +1090,7 @@
             if (frame) {
               frame.style.pointerEvents = 'auto';
               const dest = b.url || 'https://www.pornhub.com';
-              frame.src = buildProxyUrl(dest);
+              frame.src = '/proxy?url=' + encodeURIComponent(dest) + '&country=us&premium=0';
             }
             return;
           }
@@ -1200,7 +1166,7 @@
       const free = localStorage.getItem('freeAccess') === '1';
       const premium = localStorage.getItem('premium') === '1';
       if (frame && (free || premium)) {
-        window.pvpnProxyReady.then(() => { frame.src = buildProxyUrl('https://www.pornhub.com'); });
+        frame.src = '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') + '&country=us&premium=' + (premium ? '1' : '0');
         const du = document.getElementById('displayUrl');
         if (du) du.textContent = 'pornhub.com';
       }
@@ -1353,11 +1319,11 @@
   <script src="/js/loot-crate.js"></script>
 
 <!-- Extension Install Prompt -->
-<div id="extPrompt" style="display:none;position:fixed;right:18px;bottom:18px;width:min(390px,calc(100vw - 36px));z-index:1500;text-align:center;">
-  <div style="background:#111;color:#ff7a00;padding:30px;border-radius:10px;max-width:100%;margin:0;border:2px solid #ff7a00;position:relative;">
+<div id="extPrompt" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+  <div style="background:#111;color:#ff7a00;padding:30px;border-radius:10px;max-width:420px;margin:20px;border:2px solid #ff7a00;position:relative;">
     <button onclick="closeExtPrompt()" aria-label="Close" title="Close" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#888;font-size:22px;cursor:pointer;line-height:1;padding:4px 6px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">×</button>
-    <h3 style="margin:0 0 15px 0;">Install or Update the PVPN Extension</h3>
-    <p style="margin:0 0 15px 0;line-height:1.4;color:#ccc;">Version 1.1.1 enables the fastest and most reliable direct browsing mode:</p>
+    <h3 style="margin:0 0 15px 0;">Need Full Video Access?</h3>
+    <p style="margin:0 0 15px 0;line-height:1.4;color:#ccc;">Pornhub blocks embedding. Install our extension for inline playback:</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
       <button onclick="dlExt('chrome')" style="background:#ff7a00;color:#000;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Chrome</button>
       <button onclick="dlExt('edge')" style="background:#000;color:#fff;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Edge</button>
@@ -1367,47 +1333,11 @@
     <p style="margin:15px 0 0 0;font-size:12px;color:#888;">1. Click download 2. Enable Developer Mode 3. Load unpacked (Universal installs all browsers automatically)</p>
   </div>
 </div>
-<script>
-function dlExt(browser) {
-  const links = {
-    chrome: '/extension/chrome',
-    edge: '/extension/edge',
-    firefox: '/extension/firefox',
-    universal: '/extension/chrome'
-  };
-  window.location.href = links[browser] || links.chrome;
-}
-var _extDismissed = false;
-function closeExtPrompt() {
-  _extDismissed = true;
-  try { sessionStorage.setItem('pvpnExtPromptDismissed', '1'); } catch (_) {}
-  var prompt = document.getElementById('extPrompt');
-  if (prompt) prompt.style.display = 'none';
-}
-function extensionIsCurrent() {
-  var root = document.documentElement;
-  return root.getAttribute('data-pvpn-extension') === 'ready' &&
-    root.getAttribute('data-pvpn-extension-version') === '1.1.1';
-}
-function updateExtensionPrompt() {
-  var prompt = document.getElementById('extPrompt');
-  if (!prompt) return;
-  if (extensionIsCurrent()) {
-    prompt.style.display = 'none';
-    return;
-  }
-  var dismissed = false;
-  try { dismissed = sessionStorage.getItem('pvpnExtPromptDismissed') === '1'; } catch (_) {}
-  if (!_extDismissed && !dismissed) prompt.style.display = 'flex';
-}
-document.getElementById('extPrompt').addEventListener('click', function (event) {
-  if (event.target === this) closeExtPrompt();
-});
-document.addEventListener('keydown', function (event) {
-  if (event.key === 'Escape') closeExtPrompt();
-});
-window.addEventListener('pvpn-extension-ready', updateExtensionPrompt);
-setTimeout(updateExtensionPrompt, 1800);
-</script>
+<script>function dlExt(b){var m={'chrome':'/vpn-browser-extension.zip','edge':'/vpn-browser-extension.zip','firefox':'/vpn-browser-extension.xpi','universal':'/PVPN-Browser-Extension-Setup.exe'};window.open(m[b],'_blank');}
+var _extDismissed=false;
+function closeExtPrompt(){_extDismissed=true;var p=document.getElementById('extPrompt');if(p)p.style.display='none';}
+document.getElementById('extPrompt').addEventListener('click',function(e){if(e.target===this)closeExtPrompt();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeExtPrompt();});
+// Extension installation is user-initiated; do not cover a successfully loaded proxy page.</script>
 </body>
 </html>
