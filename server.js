@@ -318,10 +318,23 @@ async function proxyHandler(req, res) {
         'Upgrade-Insecure-Requests': '1',
         ...(req.method === 'POST' ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
       },
-      redirect: 'follow',
+      redirect: 'manual',
       signal: controller.signal,
     });
     clearTimeout(timeout);
+
+    // Handle upstream redirects for sub-resource proxy: rewrite to /proxy?url=...
+    if (response.status >= 300 && response.status < 400) {
+      const loc = response.headers.get('location');
+      if (loc) {
+        try {
+          const redirectUrl = new URL(loc, url).href;
+          res.redirect(302, '/proxy?url=' + encodeURIComponent(redirectUrl));
+          return;
+        } catch (_) { /* fall through */ }
+      }
+    }
+
     const contentType = response.headers.get('content-type') || 'text/html';
     const body = await response.text();
 
@@ -747,10 +760,30 @@ const fullPageProxyHandler = async (req, res) => {
         'Upgrade-Insecure-Requests': '1',
         ...(req.method === 'POST' ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
       },
-      redirect: 'follow',
+      redirect: 'manual',
       signal: controller.signal,
     });
     clearTimeout(timeout);
+
+    // ── Handle upstream redirects: rewrite Location to /go?url=... ──
+    // Pornhub 302s to /upgrade (paywall) or affiliate paths. Intercept and
+    // re-route through /go so the iframe never loads the real domain raw.
+    if (response.status >= 300 && response.status < 400) {
+      const loc = response.headers.get('location');
+      if (loc) {
+        try {
+          const redirectUrl = new URL(loc, url).href;
+          const qs = new URLSearchParams({
+            url: redirectUrl,
+            country: country,
+            premium: isPremium ? '1' : '0',
+          });
+          if (req.query.embedded === '1') qs.set('embedded', '1');
+          res.redirect(302, '/go?' + qs.toString());
+          return;
+        } catch (_) { /* fall through */ }
+      }
+    }
 
     const contentType = response.headers.get('content-type') || 'text/html';
 
