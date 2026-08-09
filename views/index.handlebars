@@ -1640,6 +1640,7 @@
             
             if (frame && fallback) {
               setTimeout(() => {
+                if (frame.dataset.browserHome === '1' || frame.hasAttribute('srcdoc')) return;
                 if (frame.contentWindow && frame.contentWindow.document) {
                   try {
                     const title = frame.contentWindow.document.title || '';
@@ -1655,13 +1656,15 @@
               }, 3000);
               
               window.addEventListener('message', function(e) {
-                if (e.data && (e.data.includes('X-Frame-Options') || e.data.includes('blocked'))) {
+                if (frame.dataset.browserHome === '1' || frame.hasAttribute('srcdoc')) return;
+                if (e.data && typeof e.data === 'string' && (e.data.includes('X-Frame-Options') || e.data.includes('blocked'))) {
                   showFallback();
                 }
               });
             }
             
             function showFallback() {
+              if (frame && (frame.dataset.browserHome === '1' || frame.hasAttribute('srcdoc'))) return;
               if (loadFailed) return;
               loadFailed = true;
               fallback.style.display = 'block';
@@ -2106,6 +2109,9 @@
       const browserFrame = document.getElementById('frame');
       if (!browserFrame) return;
       browserFrame.dataset.browserHome = '1';
+      browserFrame.style.removeProperty('display');
+      const fallbackEl = document.getElementById('fallbackMsg');
+      if (fallbackEl) fallbackEl.style.display = 'none';
       browserFrame.src = 'about:blank';
       const homeHtml = [
         "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><style>",
