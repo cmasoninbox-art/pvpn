@@ -341,7 +341,13 @@ async function proxyHandler(req, res) {
     // Forward upstream headers to our response, then strip blocking headers
     // This ensures X-Frame-Options/CSP from upstream are properly removed
     response.headers.forEach((value, name) => {
-      if (name.toLowerCase() !== 'content-type' && name.toLowerCase() !== 'transfer-encoding') {
+      const lower = name.toLowerCase();
+      if (lower !== 'content-type' && lower !== 'transfer-encoding'
+          && lower !== 'content-security-policy'
+          && lower !== 'x-content-security-policy'
+          && lower !== 'x-webkit-csp'
+          && lower !== 'x-frame-options'
+          && lower !== 'x-content-type-options') {
         res.setHeader(name, value);
       }
     });
@@ -827,7 +833,13 @@ const fullPageProxyHandler = async (req, res) => {
       // Forward upstream headers, strip XFO/CSP blocking headers
       response.headers.forEach((value, name) => {
         const lower = name.toLowerCase();
-        if (lower !== 'content-type' && lower !== 'transfer-encoding') {
+        // Skip content-type, transfer-encoding, and ALL CSP/XFO variants
+        if (lower !== 'content-type' && lower !== 'transfer-encoding'
+            && lower !== 'content-security-policy'
+            && lower !== 'x-content-security-policy'
+            && lower !== 'x-webkit-csp'
+            && lower !== 'x-frame-options'
+            && lower !== 'x-content-type-options') {
           res.setHeader(name, value);
         }
       });
