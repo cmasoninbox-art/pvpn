@@ -388,9 +388,14 @@
       .media-field { min-width: 0; }
       .media-field select { box-sizing: border-box; width: 100%; min-width: 0; }
       .media-lock { grid-column: 1 / -1; overflow-wrap: anywhere; }
-      #frame {
+      #frame, iframe#frame, iframe[name="frame"] {
         display: block;
         box-sizing: border-box;
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        z-index: auto !important;
+        max-height: none !important;
         width: 100% !important;
         min-width: 0;
         height: calc(100dvh - 250px) !important;
@@ -419,7 +424,7 @@
       .media-lock { grid-column: 1; }
       #premiumPartyBtn { font-size: 11px; padding: 7px 9px !important; }
       .connection { font-size: 12px; }
-      #frame { height: calc(100dvh - 310px) !important; min-height: 360px; }
+      #frame, iframe#frame, iframe[name="frame"] { height: calc(100dvh - 310px) !important; min-height: 360px; }
     }
   </style>
 </head>
