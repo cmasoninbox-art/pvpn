@@ -381,15 +381,15 @@ async function proxyHandler(req, res) {
       agent,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept': req.headers.accept || 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
         'Accept-Encoding': 'identity',
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
+        'Sec-Fetch-Dest': req.headers['sec-fetch-dest'] || 'document',
+        'Sec-Fetch-Mode': req.headers['sec-fetch-mode'] || 'navigate',
+        'Sec-Fetch-Site': req.headers['sec-fetch-site'] || 'same-origin',
+        ...(req.headers.range ? { 'Range': String(req.headers.range) } : {}),
         'Upgrade-Insecure-Requests': '1',
         ...(req.method === 'POST' ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
       },
@@ -410,9 +410,11 @@ async function proxyHandler(req, res) {
       }
     }
 
+    res.status(response.status);
     const contentType = response.headers.get('content-type') || 'text/html';
-    // Preserve binary assets exactly; decoding images or media as UTF-8 corrupts them.
-    const body = contentType.includes('text/html')
+    const isHlsManifest = /(?:application|audio)\/(?:vnd\.apple\.mpegurl|x-mpegurl)/i.test(contentType) || /\.m3u8(?:$|[?#])/i.test(url);
+    // Preserve binary assets exactly; HTML and HLS manifests remain text so their URLs can be rewritten.
+    const body = (contentType.includes('text/html') || isHlsManifest)
       ? await response.text()
       : Buffer.from(await response.arrayBuffer());
 
@@ -439,6 +441,30 @@ async function proxyHandler(req, res) {
     res.removeHeader('content-security-policy');
     res.removeHeader('content-length');
     res.removeHeader('content-encoding');
+    // HLS playlists contain relative segment/key URLs. Route every one through PVPN
+    // so the browser does not jump directly to the CDN and lose range/referrer handling.
+    if (isHlsManifest) {
+      const wrapHlsUrl = (raw) => {
+        try {
+          const absolute = new URL(String(raw || '').trim(), url).href;
+          return '/proxy?url=' + encodeURIComponent(absolute);
+        } catch (_) { return raw; }
+      };
+      const rewrittenManifest = String(body)
+        .replace(/URI=("|')([^"']+)\1/gi, (match, quote, raw) => 'URI=' + quote + wrapHlsUrl(raw) + quote)
+        .split(/\r?\n/)
+        .map((line) => {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) return line;
+          return wrapHlsUrl(trimmed);
+        })
+        .join('\n');
+      res.set('Content-Type', contentType);
+      res.set('Cache-Control', 'no-store');
+      res.set('Access-Control-Allow-Origin', '*');
+      res.send(rewrittenManifest);
+      return;
+    }
     if (contentType.includes('text/html')) {
       const base = new URL(url);
       const proxyBase = '/proxy?url=' + encodeURIComponent(base.origin + '/');
@@ -645,33 +671,50 @@ async function proxyHandler(req, res) {
       rewritten = rewritten.replace(/\/\*__PVPN_SCRIPT_BODY_(\d+)__\*\//g, (m, index) => {
         return protectedScriptBodies[Number(index)] || '';
       });
-      // Free accounts receive only 480p-or-lower streams. This runs after
-      // restoring the site's inline player configuration and before it executes.
-      if (!premiumAccess) {
-        rewritten = rewritten.replace(/var\s+(flashvars_\d+)\s*=\s*(\{[^\r\n]*\});/g, (match, name, json) => {
-          try {
-            const config = JSON.parse(json);
-            if (!Array.isArray(config.mediaDefinitions)) return match;
-            const allowed = config.mediaDefinitions.filter((definition) => {
+      // Route player streams through PVPN for every tier. Free accounts are still
+      // limited to 480p-or-lower, while Premium keeps every upstream definition.
+      rewritten = rewritten.replace(/var\s+(flashvars_\d+)\s*=\s*(\{[^\r\n]*\});/g, (match, name, json) => {
+        try {
+          const config = JSON.parse(json);
+          if (!Array.isArray(config.mediaDefinitions)) return match;
+          let definitions = config.mediaDefinitions.slice();
+          if (!premiumAccess) {
+            const allowed = definitions.filter((definition) => {
               const height = Number(definition && (definition.height || definition.quality));
               return Number.isFinite(height) && height > 0 && height <= 480;
             });
-            if (!allowed.length) return match;
-            const preferred = allowed.find((definition) =>
+            if (allowed.length) definitions = allowed;
+            const preferred = definitions.find((definition) =>
               Number(definition && (definition.height || definition.quality)) === 480
-            ) || allowed[allowed.length - 1];
-            allowed.forEach((definition) => { definition.defaultQuality = definition === preferred; });
-            config.mediaDefinitions = allowed;
+            ) || definitions[definitions.length - 1];
+            definitions.forEach((definition) => { definition.defaultQuality = definition === preferred; });
             config.defaultQuality = [480, 240].filter((height) =>
-              allowed.some((definition) => Number(definition && (definition.height || definition.quality)) === height)
+              definitions.some((definition) => Number(definition && (definition.height || definition.quality)) === height)
             );
-            return 'var ' + name + ' = ' + JSON.stringify(config) + ';';
-          } catch (_) {
-            return match;
           }
-        });
-      }
-      // CSP: everything flows through our origin so framed sites can't load the real domain
+          const streamKeys = ['videoUrl', 'video_url', 'url', 'src', 'link'];
+          definitions.forEach((definition) => {
+            if (!definition || typeof definition !== 'object') return;
+            streamKeys.forEach((key) => {
+              const value = definition[key];
+              if (typeof value === 'string' && /^(?:https?:)?\/\//i.test(value)) {
+                definition[key] = proxyWrap(value.startsWith('//') ? 'https:' + value : value);
+              } else if (Array.isArray(value)) {
+                definition[key] = value.map((entry) =>
+                  typeof entry === 'string' && /^(?:https?:)?\/\//i.test(entry)
+                    ? proxyWrap(entry.startsWith('//') ? 'https:' + entry : entry)
+                    : entry
+                );
+              }
+            });
+          });
+          config.mediaDefinitions = definitions;
+          return 'var ' + name + ' = ' + JSON.stringify(config) + ';';
+        } catch (_) {
+          return match;
+        }
+      });
+      // CSP: everything flows through our origin      // CSP: everything flows through our origin so framed sites can't load the real domain
       // (which would serve X-Frame-Options: DENY and break framing). Sandbox already allows
       // scripts/forms/same-origin/popups.
       const csp = [
