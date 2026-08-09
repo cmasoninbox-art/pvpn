@@ -664,7 +664,10 @@ try{
         "base-uri 'self'",
       ].join('; ');
       res.set('Content-Type', 'text/html');
-      res.set('Content-Security-Policy', csp);
+      // Use permissive CSP — scripts/styles/media load from the proxied domain.
+      // The injected <meta> CSP handles frame-busting protection inside the page.
+      const permissiveCsp = "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' blob: data:; style-src * 'unsafe-inline' blob: data:; connect-src * data: blob:; font-src * data: blob:; frame-ancestors *;";
+      res.set('Content-Security-Policy', permissiveCsp);
       // Strip upstream X-Frame-Options and X-Content-Type-Options that block iframe embedding
       res.removeHeader('x-frame-options');
       res.removeHeader('x-content-type-options');
@@ -685,8 +688,10 @@ try{
     res.removeHeader('x-content-type-options');
     // CSP: form-action + frame-src block navigation to foreign origins.
     // removed navigate-to (IE-only, unsupported)
+    // Permissive CSP: allow proxied content scripts/styles/media from all origins.
+    // Frame-busting is handled by injected anti-bust JS in the HTML body.
     res.set('Content-Security-Policy',
-      "form-action 'self'; frame-src 'self'; ");
+      "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; media-src * data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' blob: data:; style-src * 'unsafe-inline' blob: data:; connect-src * data: blob:; font-src * data: blob:; frame-ancestors *; ");
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
