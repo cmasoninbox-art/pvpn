@@ -449,13 +449,17 @@ async function proxyHandler(req, res) {
 
       // Inject media-enforcement: cap video resolution to the enforced quality,
       // force playback rate and subtitle mode on every <video>, even ones created later.
-      const settings = getMediaSettings(req);
+      const sessionUser = parseUser(req);
+      const premiumAccess = isAdmin(req) || !!(sessionUser && sessionUser.premium) || req.query.premium === '1';
+      const settings = { ...getMediaSettings(req) };
+      if (!premiumAccess) settings.quality = '480';
       const enforcement = `
 <script>
 (function(){
   // Disable right-click inside the proxied browser content too
   document.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; });
   var ENF = ${JSON.stringify(settings)};
+  var FREE_TIER = ${premiumAccess ? 'false' : 'true'};
   function applyVideo(v){
     if(!v) return;
     try {
@@ -475,7 +479,27 @@ async function proxyHandler(req, res) {
       } catch(e){}
     }
   }
-  function applyAll(){ var vs=document.querySelectorAll('video'); for(var i=0;i<vs.length;i++){ applyVideo(vs[i]); } }
+  function enforceSiteQuality(){
+    if(!FREE_TIER) return;
+    try {
+      var style = document.getElementById('pvpn-free-quality-lock');
+      if(!style){
+        style = document.createElement('style');
+        style.id = 'pvpn-free-quality-lock';
+        style.textContent = '.mgp_btn-quality,.mgp_quality-btn,.mgp_qualityDiv,.mgp_streamingQuality{display:none!important;visibility:hidden!important;pointer-events:none!important}';
+        (document.head || document.documentElement).appendChild(style);
+      }
+      var options = document.querySelectorAll('.mgp_settings-menu-quality-item');
+      var target = null;
+      var selected = null;
+      for(var q=0;q<options.length;q++){
+        if(options[q].classList.contains('mgp_selected-row')) selected = options[q];
+        if(/\b480p?\b/i.test(options[q].textContent || '')) target = options[q];
+      }
+      if(target && selected !== target) target.click();
+    } catch(e){}
+  }
+  function applyAll(){ var vs=document.querySelectorAll('video'); for(var i=0;i<vs.length;i++){ applyVideo(vs[i]); } enforceSiteQuality(); }
   // Hook creation so dynamically added videos are also enforced.
   try {
     var orig = document.createElement;
@@ -494,6 +518,7 @@ async function proxyHandler(req, res) {
   var obs = new MutationObserver(function(muts){ muts.forEach(function(m){ m.addedNodes.forEach(function(n){ if(n&&n.tagName==='VIDEO') applyVideo(n); }); }); });
   try { obs.observe(document.documentElement, {childList:true, subtree:true}); } catch(e){}
   applyAll();
+  if(FREE_TIER) setInterval(enforceSiteQuality, 1500);
 })();
 </script>
 `;
