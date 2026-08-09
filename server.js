@@ -386,9 +386,12 @@ async function proxyHandler(req, res) {
         'Accept-Encoding': 'identity',
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
-        'Sec-Fetch-Dest': req.headers['sec-fetch-dest'] || 'document',
-        'Sec-Fetch-Mode': req.headers['sec-fetch-mode'] || 'navigate',
-        'Sec-Fetch-Site': req.headers['sec-fetch-site'] || 'same-origin',
+        // Present the upstream request as a normal top-level navigation. Forwarding
+        // Sec-Fetch-Dest: iframe causes several target sites to return a blank page.
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
         ...(req.headers.range ? { 'Range': String(req.headers.range) } : {}),
         'Upgrade-Insecure-Requests': '1',
         ...(req.method === 'POST' ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
