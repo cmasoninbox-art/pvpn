@@ -364,7 +364,15 @@ async function proxyHandler(req, res) {
     if (contentType.includes('text/html')) {
       const base = new URL(url);
       const proxyBase = '/proxy?url=' + encodeURIComponent(base.origin + '/');
-      let rewritten = body
+      // Protect inline JavaScript while rewriting HTML tags and attributes.
+      const protectedScriptBodies = [];
+      const scriptSafeBody = body.replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi, (m, open, code, close) => {
+        if (code && code.includes('hotlinkerredirects')) return '';
+        if (!code) return m;
+        const index = protectedScriptBodies.push(code) - 1;
+        return open + '/*__PVPN_SCRIPT_BODY_' + index + '__*/' + close;
+      });
+      let rewritten = scriptSafeBody
         .replace(/<head([^>]*)>/i, `<head$1>`)
         .replace(/\shref=(["'])([^"'>]+)\1/gi, (match, q, urlVal) => {
           if (!urlVal || urlVal.startsWith('#') || urlVal.startsWith('javascript:') || urlVal.startsWith('data:') || urlVal.startsWith('/proxy?url=')) return match;
@@ -471,34 +479,6 @@ async function proxyHandler(req, res) {
 })();
 </script>
 `;
-      // Rewrite absolute URLs INSIDE <script> content (JSON-LD, JSON config, string literals,
-      // window.open() targets) so sites like Pornhub don't escape the proxy and trip their
-      // own X-Frame-Options. Keep relative + data: + the proxy itself intact.
-      const proxyWrap = (raw) => {
-        let u;
-        try { u = new URL(raw); }
-        catch (_) {
-          try { u = new URL(decodeURIComponent(raw)); }
-          catch (e2) {
-            // Protocol-relative (//host/...) or still-unparseable: try with https: prepended.
-            try { u = new URL('https:' + (raw.startsWith('//') ? raw : '//' + raw)); }
-            catch (e3) { return raw; }
-          }
-        }
-        if (u.protocol !== 'http:' && u.protocol !== 'https:') return raw;
-        if (u.host === req.headers.host) return raw; // already our proxy
-        return '/proxy?url=' + encodeURIComponent(u.href);
-      };
-      rewritten = rewritten.replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi, (m, open, code, close) => {
-        // Catch http(s)://, //, and the backslash-escaped \/\/ forms Pornhub emits in JSON.
-        const fixed = code.replace(/(?:https?:)?\/\/[^\s"'`>]+/g, (tok) => {
-          if (tok.startsWith('//')) {
-            return proxyWrap('https:' + tok); // protocol-relative -> https absolute
-          }
-          return proxyWrap(tok);
-        });
-        return open + fixed + close;
-      });
       // Second pass: catch escaped-slash AND url-encoded URLs (Pornhub double-encodes
       // host refs as %2F%2Fwww.pornhub.com / https%3A%2F%2F...) that sit anywhere in the
       // document. These still leak the real domain once the browser decodes them.
@@ -520,157 +500,16 @@ async function proxyHandler(req, res) {
         const u = norm.startsWith('//') ? 'https:' + norm : norm;
         return proxyWrap(u);
       });
-      // Static frame-bust neutralization: rewrite navigation references that break out of
-      // the iframe (top.location / parent.location / window.top / window.parent) to self,
-      // inside <script> blocks. This defeats the common static frame-bust patterns so the
-      // framed page can never navigate the outer frame (or itself) to the real domain.
-      rewritten = rewritten.replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi, (m, open, code, close) => {
-        const fixed = code
-          .replace(/top\.location/g, 'self.location')
-          .replace(/parent\.location/g, 'self.location')
-          .replace(/window\.top\b/g, 'window.self')
-          .replace(/window\.parent\b/g, 'window.self')
-          // Route bare window.location = and document.location = assignments through
-          // the Location.prototype.href setter, which our trap intercepts.
-          .replace(/\bwindow\.location\s*=/g, 'window.location.href =')
-          .replace(/\bdocument\.location\s*=/g, 'document.location.href =')
-          .replace(/\blocation\s*=\s*[^=]/g, (mm) => {
-            // bare `location = url` (no window/document prefix) — convert to location.href
-            return mm.replace('location =', 'location.href =').replace('location=','location.href=');
-          })
-          .replace(/\bparent\s*===|\bparent\s*!==|\bparent\s*==|\bparent\s*!=/g, (mm) => mm.replace('parent', 'self'))
-          .replace(/\btop\s*===|\btop\s*!==|\btop\s*==|\btop\s*!=/g, (mm) => mm.replace('top', 'self'));
-        return open + fixed + close;
-      });
       // Neutralize runtime URL builders that reconstruct the real domain (e.g. the
       // language selector builds 'https://<cc>.' + data-root). Point data-root at our
       // own host so any constructed URL stays same-origin (and gets blocked if foreign).
       rewritten = rewritten.replace(/(data-root=["'])[^"']*(["'])/gi, (mm, p1, p2) => {
         return p1 + (req.headers.host || 'localhost') + p2;
       });
-      // Inject frame-busting neutralizer. MUST run before any site script. It freezes
-      // top/parent/frameElement to self and traps navigation at the PROTOTYPE level so
-      // that no matter how framed-page code obtains a Location (window.location,
-      // document.location, event.target.location, split-string URLs, etc.) it can never
-      // navigate to the real domain.
-      const antiBust = `<script>(function(){
-try{
-  var _self = window.self;
-  Object.defineProperty(window,'top',{get:function(){return _self;},configurable:false});
-  Object.defineProperty(window,'parent',{get:function(){return _self;},configurable:false});
-  Object.defineProperty(window,'frameElement',{get:function(){return null;},configurable:false});
-  try{ window.top = _self; }catch(e){}
-  try{ window.parent = _self; }catch(e){}
-  try{ window.frameElement = null; }catch(e){}
-
-  // Block navigation to ANY foreign origin (real pornhub, ad/popunder domains, etc).
-  function blocked(v){
-    if (!v) return false;
-    var s = String(v);
-    if (s.indexOf('pornhub') !== -1) return true;
-    try {
-      var u = new URL(s, window.location.href);
-      return u.hostname !== window.location.hostname;
-    } catch (_) { return false; }
-  }
-
-  // Intercept ALL Location access points (window.location, document.location, location)
-  var LocProto = (window.location && Object.getPrototypeOf(window.location)) || (window.Location && window.Location.prototype);
-  if (LocProto) {
-    try {
-      var _hrefDesc = Object.getOwnPropertyDescriptor(LocProto,'href');
-      Object.defineProperty(LocProto,'href',{
-        get: function(){ return _hrefDesc ? _hrefDesc.get.call(this) : ''; },
-        set: function(v){ if(blocked(v)) return; try{ _hrefDesc.set.call(this, v); }catch(e){} },
-        configurable: true
+      // Restore the exact original inline scripts after HTML-only rewriting.
+      rewritten = rewritten.replace(/\/\*__PVPN_SCRIPT_BODY_(\d+)__\*\//g, (m, index) => {
+        return protectedScriptBodies[Number(index)] || '';
       });
-    } catch(e){}
-    try { var _r = LocProto.replace; LocProto.replace = function(v){ if(blocked(v)) return; return _r.apply(this, arguments); }; } catch(e){}
-    try { var _a = LocProto.assign; LocProto.assign = function(v){ if(blocked(v)) return; return _a.apply(this, arguments); }; } catch(e){}
-  }
-
-  // Also freeze document.location
-  try {
-    var _docLoc = document.location;
-    Object.defineProperty(document, 'location', {
-      get: function(){ return _docLoc; },
-      set: function(v){ if(blocked(v)) return; },
-      configurable: true
-    });
-  } catch(e){}
-
-  // Trap window.open
-  try {
-    var _open = window.open.bind(window);
-    window.open = function(u, t, f){
-      if (t === '_parent' || t === '_top' || (t === '_blank' && blocked(u))) t = '_self';
-      if (blocked(u)) return null;
-      return _open(u, t, f);
-    };
-  } catch(e){}
-
-  // beforeunload guard — last-resort navigation blocker
-  window.addEventListener('beforeunload', function(e){
-    // If the navigation target is cross-origin, the browser will show a prompt.
-    // This at least prevents silent frame-bust redirects.
-  });
-
-  // Scrub history navigation
-  var _push = history.pushState, _rpl = history.replaceState;
-  function scrub(u){ if(u && String(u).indexOf('pornhub') !== -1) return; return u; }
-  try { history.pushState = function(a,t,u){ return _push.call(history,a,t,scrub(u)); }; } catch(e){}
-  try { history.replaceState = function(a,t,u){ return _rpl.call(history,a,t,scrub(u)); }; } catch(e){}
-
-  // Kill meta refresh redirects to foreign domains
-  var metaObserver = new MutationObserver(function(muts){
-    muts.forEach(function(m){
-      m.addedNodes.forEach(function(n){
-        if(n && n.tagName === 'META' && n.httpEquiv && /refresh/i.test(n.httpEquiv)){
-          if(n.content && /https?:\/\//i.test(n.content) && !/\/proxy\?url=/.test(n.content)){
-            n.remove();
-          }
-        }
-      });
-    });
-  });
-  try { metaObserver.observe(document.documentElement, {childList:true, subtree:true}); } catch(e){}
-
-  // Also strip existing meta refresh tags pointing to foreign domains
-  document.querySelectorAll('meta[http-equiv="refresh"]').forEach(function(m){
-    if(m.content && /https?:\/\//i.test(m.content) && !/\/proxy\?url=/.test(m.content)){
-      m.remove();
-    }
-  });
-
-  // Block CSP and X-Frame-Options meta tags (Pornhub injects them to frame-bust)
-  var cspObserver = new MutationObserver(function(muts){
-    muts.forEach(function(m){
-      m.addedNodes.forEach(function(n){
-        if(n && n.tagName === 'META' && n.httpEquiv){
-          var hv = n.httpEquiv.toLowerCase();
-          if(hv === 'content-security-policy' || hv === 'x-frame-options' || hv === 'x-content-security-policy' || hv === 'x-webkit-csp'){
-            n.remove();
-          }
-        }
-      });
-    });
-  });
-  try { cspObserver.observe(document.documentElement, {childList:true, subtree:true}); } catch(e){}
-
-  // Also remove any existing CSP/XFO meta tags added by page
-  document.querySelectorAll('meta[http-equiv="Content-Security-Policy"], meta[http-equiv="X-Frame-Options"], meta[http-equiv="X-Content-Security-Policy"], meta[http-equiv="X-WebKit-CSP"]').forEach(function(m){ m.remove(); });
-
-  document.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; });
-}catch(e){}
-})();</script>`;
-      // Inject at the very start of <head> (or <body>/document start if no head tag).
-      if (/<head[^>]*>/i.test(rewritten)) {
-        rewritten = rewritten.replace(/<head([^>]*)>/i, `<head$1>${antiBust}`);
-      } else if (/<body[^>]*>/i.test(rewritten)) {
-        rewritten = rewritten.replace(/<body([^>]*)>/i, `<body$1>${antiBust}`);
-      } else {
-        rewritten = antiBust + rewritten;
-      }
       // CSP: everything flows through our origin so framed sites can't load the real domain
       // (which would serve X-Frame-Options: DENY and break framing). Sandbox already allows
       // scripts/forms/same-origin/popups.
