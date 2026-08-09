@@ -289,6 +289,138 @@
     #terminatedScreen .mk-word { font-size: 120px; line-height: 1; letter-spacing: 8px; text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000; }
     #terminatedScreen .mk-sub { font-size: 22px; letter-spacing: 6px; color: #ff5252; margin-top: 10px; }
     @keyframes mkPulse { from { transform: scale(0.96); } to { transform: scale(1.06); } }
+
+    /* Mobile layout */
+    @media (max-width: 760px) {
+      html, body { width: 100%; min-width: 0; overflow-x: hidden; }
+      body { margin: 0; }
+      #ageGate, #premiumGate, #loginMenu, #extPrompt {
+        box-sizing: border-box;
+        padding: 12px;
+        align-items: flex-start !important;
+        overflow-y: auto;
+      }
+      #ageGate .box, #premiumGate .box, #loginMenu .box, #extPrompt > div {
+        box-sizing: border-box;
+        width: 100% !important;
+        max-width: 460px !important;
+        margin: auto !important;
+        padding: 22px 18px !important;
+      }
+      #ageGate .actions, #premiumGate .actions {
+        flex-direction: column;
+      }
+      #ageGate button, #premiumGate button, #premiumGate .pill {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .layout { width: 100%; min-width: 0; overflow: hidden; }
+      .ad-top { max-height: 72px; overflow: hidden; }
+      .top-banner { width: 100%; height: auto; max-height: 72px; object-fit: cover; }
+      .toolbar {
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px;
+      }
+      .brand { flex: 1 1 auto; min-width: 0; }
+      .menu-dropdown {
+        position: fixed !important;
+        left: 8px !important;
+        right: 8px !important;
+        top: 52px !important;
+        width: auto !important;
+        max-height: calc(100dvh - 64px);
+        overflow-y: auto;
+        z-index: 10020;
+      }
+      .nav {
+        order: 5;
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 6px;
+      }
+      .nav select, .nav input, .nav button {
+        box-sizing: border-box;
+        min-width: 0;
+        max-width: 100%;
+      }
+      #country, #vpnMode { grid-column: span 1; }
+      #url, #localProxy { grid-column: 1 / 3; width: 100%; }
+      #premiumPartyBtn { margin-left: auto; }
+      .connection { white-space: nowrap; }
+      .vpn-note { flex: 1 1 100%; overflow-wrap: anywhere; }
+      .main { display: block !important; width: 100%; min-width: 0; }
+      .left-ads, .right-ads { display: none !important; }
+      .browser { box-sizing: border-box; width: 100% !important; min-width: 0; }
+      .browser-bar {
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-width: 0;
+        padding: 7px;
+      }
+      #displayUrl {
+        flex: 1 1 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      #refreshBtn, #openTabBtn { float: none !important; margin: 0 !important; }
+      .media-bar {
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        padding: 7px;
+      }
+      .media-field { min-width: 0; }
+      .media-field select { box-sizing: border-box; width: 100%; min-width: 0; }
+      .media-lock { grid-column: 1 / -1; overflow-wrap: anywhere; }
+      #frame {
+        display: block;
+        box-sizing: border-box;
+        width: 100% !important;
+        min-width: 0;
+        height: calc(100dvh - 250px) !important;
+        min-height: 420px;
+      }
+      #browserGate {
+        box-sizing: border-box;
+        width: calc(100% - 24px) !important;
+        max-height: calc(100dvh - 24px);
+        overflow-y: auto;
+      }
+      .gate-inner { box-sizing: border-box; padding: 22px 16px; }
+      .gate-btns { flex-direction: column; }
+      .gate-free, .gate-premium { box-sizing: border-box; width: 100%; min-width: 0; }
+      #fallbackMsg {
+        box-sizing: border-box;
+        width: calc(100% - 24px);
+        max-width: none !important;
+      }
+      #extPrompt > div > div { flex-direction: column; }
+      #extPrompt button:not([aria-label="Close"]) { width: 100%; }
+    }
+    @media (max-width: 430px) {
+      #country, #vpnMode, #url, #localProxy { grid-column: 1 / -1; }
+      .media-bar { grid-template-columns: 1fr; }
+      .media-lock { grid-column: 1; }
+      #premiumPartyBtn { font-size: 11px; padding: 7px 9px !important; }
+      .connection { font-size: 12px; }
+      #frame { height: calc(100dvh - 310px) !important; min-height: 360px; }
+    }
   </style>
 </head>
 <body class="theme-{{theme}}">
