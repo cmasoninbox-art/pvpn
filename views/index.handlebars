@@ -1242,6 +1242,192 @@
         max-height: 145px !important;
       }
     }
+
+    .mobile-art-overlay { display: none; }
+    @media (max-width: 760px) {
+      html, body {
+        background: #050505 !important;
+        color: #fff !important;
+      }
+      body { background: #050505 !important; }
+      .layout {
+        position: relative;
+        display: flex !important;
+        flex-direction: column;
+        padding: 0 0 max(8px, env(safe-area-inset-bottom));
+      }
+      .layout > .ad-top { order: 1; }
+      .layout > .toolbar { order: 2; }
+      .layout > .main { order: 3; }
+      .layout > .ad-bottom { order: 4; }
+      .ad-top, #ad-slot-top {
+        position: relative;
+        isolation: isolate;
+        display: block !important;
+        box-sizing: border-box;
+        width: 100% !important;
+        max-width: none !important;
+        height: 72dvh !important;
+        max-height: 760px !important;
+        min-height: 480px;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        border: 0;
+        border-radius: 0;
+        background: #090909;
+        box-shadow: none;
+      }
+      .ad-top a, #ad-slot-top a {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .ad-top .top-banner, #ad-slot-top .top-banner {
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-height: none !important;
+        border-radius: 0;
+        background: #090909;
+        object-fit: cover !important;
+        object-position: center !important;
+        filter: saturate(0.94) contrast(1.04);
+      }
+      .ad-top::after, #ad-slot-top::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background:
+          linear-gradient(180deg, rgba(0,0,0,0.34) 0%, transparent 26%, transparent 70%, rgba(0,0,0,0.3) 100%),
+          linear-gradient(90deg, rgba(0,0,0,0.15), transparent 45%);
+      }
+      .mobile-art-overlay {
+        position: absolute;
+        z-index: 4;
+        top: 0;
+        left: 0;
+        right: 0;
+        box-sizing: border-box;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding:
+          max(19px, env(safe-area-inset-top))
+          max(18px, env(safe-area-inset-right))
+          18px
+          max(18px, env(safe-area-inset-left));
+        pointer-events: none;
+      }
+      .mobile-art-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        color: #fff;
+        text-shadow: 0 2px 14px rgba(0,0,0,0.62);
+      }
+      .mobile-art-brand span {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 17px;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .mobile-art-brand strong {
+        margin-top: 4px;
+        color: #ff9000;
+        font-size: clamp(24px, 7vw, 34px);
+        line-height: 0.9;
+        letter-spacing: 4px;
+      }
+      .mobile-art-brand small {
+        margin-top: 6px;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+      }
+      .mobile-art-menu {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 44px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #fff;
+        text-shadow: 0 2px 12px rgba(0,0,0,0.75);
+        cursor: pointer;
+        pointer-events: auto;
+      }
+      .mobile-art-menu span {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: lowercase;
+      }
+      .mobile-art-menu b {
+        color: #ff9000;
+        font-size: 28px;
+        font-weight: 400;
+        line-height: 1;
+      }
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 300;
+        margin: 0;
+        padding:
+          max(11px, env(safe-area-inset-top))
+          max(10px, env(safe-area-inset-right))
+          11px
+          max(10px, env(safe-area-inset-left));
+        border-width: 0 0 1px;
+        border-color: #282828 !important;
+        border-radius: 0;
+        background: rgba(7, 7, 7, 0.98) !important;
+        box-shadow: 0 12px 34px rgba(0,0,0,0.42) !important;
+      }
+      .nav {
+        border-color: #2c2c2c;
+        background: #111;
+      }
+      .nav input, .nav select, .nav button {
+        border-radius: 999px !important;
+      }
+      .nav button[type="submit"] {
+        background: #ff9000 !important;
+        color: #050505 !important;
+      }
+      .main { margin-top: 0; }
+      .browser {
+        width: 100% !important;
+        margin: 0;
+        border-width: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      #frame, iframe#frame, iframe[name="frame"] {
+        border-radius: 0;
+      }
+    }
+    @media (max-width: 430px) {
+      .ad-top, #ad-slot-top {
+        height: 68dvh !important;
+        min-height: 430px;
+      }
+      .mobile-art-overlay {
+        padding-top: max(16px, env(safe-area-inset-top));
+        padding-inline: 15px;
+      }
+      .mobile-art-brand strong {
+        font-size: 25px;
+        letter-spacing: 3px;
+      }
+      .mobile-art-menu span { display: none; }
+      .toolbar { padding-inline: 8px; }
+    }
   </style>
 </head>
 <body class="theme-{{theme}}">
@@ -1296,7 +1482,19 @@
   </div>
   <div id="teaseOverlay" class="hidden" style="display:none"></div>
   <div class="layout">
-    <div class="ad-slot ad-top" id="ad-slot-top"><a href="/donate"><img class="top-banner" src="{{bannerImage}}" alt="DONATE TO" /></a></div>
+    <div class="ad-slot ad-top" id="ad-slot-top">
+      <div class="mobile-art-overlay">
+        <div class="mobile-art-brand">
+          <span>PVPN</span>
+          <strong>BROWSER</strong>
+          <small>Private video browser</small>
+        </div>
+        <button type="button" class="mobile-art-menu" aria-label="Open menu" onclick="document.getElementById('menuBtn').click()">
+          <span>menu</span><b>☰</b>
+        </button>
+      </div>
+      <a href="/donate"><img class="top-banner" src="{{bannerImage}}" alt="PVPN Santa banner" /></a>
+    </div>
 
     <header class="toolbar">
       <div class="brand">
