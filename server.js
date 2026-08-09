@@ -3,7 +3,6 @@ const exphbs = require('express-handlebars');
 const fetch = require('node-fetch');
 const path = require('path');
 const fs = require('fs');
-const archiver = require('archiver');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const vpnMgr = require('./vpn-manager');
 
@@ -2070,82 +2069,78 @@ app.get('/admin/proxy-log', (req, res) => {
   res.json(proxyLog);
 });
 
-// ─── SERVICE-WORKER PROXY + WISP TRANSPORT ────────────────────────
-app.get('/uv/uv.config.js', (req, res) => {
-  res.type('application/javascript').send([
-    'self.__uv$config = {',
-    "  prefix: '/service/',",
-    "  bare: '/bare/',",
-    '  encodeUrl: Ultraviolet.codec.xor.encode,',
-    '  decodeUrl: Ultraviolet.codec.xor.decode,',
-    "  handler: '/uv/uv.handler.js',",
-    "  bundle: '/uv/uv.bundle.js',",
-    "  config: '/uv/uv.config.js',",
-    "  sw: '/uv/sw.js'",
-    '};'
-  ].join('\n'));
-});
+// ─── WISP WEBSSOCKET PROXY SERVER ───────────────────────────────────
+// Multiplexes TCP sockets over a single WebSocket so libcurl.js (WebAssembly)
+// can fetch HTTPS directly from the browser with end-to-end TLS encryption.
+// This eliminates the slow server-side fetch+rewrite pipeline.
+try {
+  const { server: wispServer } = require('@mercuryworkshop/wisp-js/server');
+  const http = require('http');
+  const wispHttp = http.createServer((req, res) => {
+    res.writeHead(404);
+    res.end('Wisp endpoint only');
+  });
+  // Share the same HTTP server upgrade for WebSocket
+  const wispInstance = new wispServer({
+    log_level: 'warn',
+  });
+  wispEnabled = true;
+  // Attach Wisp to the Express server's upgrade event
+  const existingServer = 
 
-app.get('/uv/sw.js', (req, res) => {
-  res.setHeader('Service-Worker-Allowed', '/');
-  res.type('application/javascript').send([
-    "importScripts('/uv/uv.bundle.js', '/uv/uv.config.js', '/uv/uv.sw.js');",
-    'const uvWorker = new UVServiceWorker();',
-    "self.addEventListener('fetch', (event) => event.respondWith(uvWorker.fetch(event)));"
-  ].join('\n'));
-});
-
-app.get('/extension/:browser', (req, res, next) => {
+// ── Extension Download Routes ──
+app.get('/extension/:browser', (req, res) => {
   const browser = req.params.browser;
-  if (!['chrome', 'edge', 'firefox'].includes(browser)) {
-    return res.status(404).send('Not found');
+  if (browser === 'chrome') {
+    res.download('public/vpn-browser-extension.xpi', 'vpn-browser-extension.xpi', (err) => {
+      if (err) res.status(404).send('Extension not available');
+    });
+  } else if (browser === 'edge') {
+    res.download('public/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+      if (err) res.status(404).send('Extension not available');
+    });
+  } else if (browser === 'firefox') {
+    res.download('public/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+      if (err) res.status(404).send('Extension not available');
+    });
+  } else {
+    res.status(404).send('Not found');
   }
-  const sourceBrowser = browser === 'firefox' ? 'firefox' : 'chrome';
-  const sourceDir = path.join(__dirname, 'extension', sourceBrowser);
-  const filename = browser === 'firefox'
-    ? 'pvpn-firefox-extension-v1.1.1.zip'
-    : 'pvpn-' + browser + '-extension-v1.1.0.zip';
-
-  res.attachment(filename);
-  const archive = archiver('zip', { zlib: { level: 9 } });
-  archive.on('error', next);
-  archive.pipe(res);
-  archive.directory(sourceDir, false);
-  archive.finalize();
 });
 
-async function startApplication() {
-  const [{ uvPath }, { epoxyPath }, { baremuxPath }, wispModule] = await Promise.all([
-    import('@titaniumnetwork-dev/ultraviolet'),
-    import('@mercuryworkshop/epoxy-transport'),
-    import('@mercuryworkshop/bare-mux/node'),
-    import('wisp-server-node'),
-  ]);
-
-  app.use('/uv/uv.sw.js', (req, res, next) => {
-    res.setHeader('Service-Worker-Allowed', '/');
-    next();
+app.listen(PORT, () => {
+    console.log(`VPN browser running on http://localhost:${PORT}`);
+    console.log(`Wisp proxy attached on ws://localhost:${PORT}/wisp/`);
   });
-  app.use('/uv/', express.static(uvPath));
-  app.use('/epoxy/', express.static(epoxyPath));
-  app.use('/baremux/', express.static(baremuxPath));
-
-  const server = app.listen(PORT, () => {
-    console.log('VPN browser running on http://localhost:' + PORT);
-    console.log('Service-worker proxy transport on ws://localhost:' + PORT + '/wisp/');
-  });
-
-  const wisp = wispModule.default || wispModule;
-  server.on('upgrade', (req, socket, head) => {
-    if (req.url && req.url.startsWith('/wisp/')) {
-      wisp.routeRequest(req, socket, head);
-      return;
+  existingServer.on('upgrade', (req, socket, head) => {
+    if (req.url.startsWith('/wisp/')) {
+      wispInstance.handleUpgrade(req, socket, head);
     }
-    socket.destroy();
   });
-}
+} catch (e) {
+  wispEnabled = false;
+  console.warn('[wisp] Failed to start Wisp server, falling back to server-side proxy:', e.message);
+  
 
-startApplication().catch((err) => {
-  console.error('[startup] Failed to initialize proxy engine:', err);
-  process.exitCode = 1;
+// ── Extension Download Routes ──
+app.get('/extension/:browser', (req, res) => {
+  const browser = req.params.browser;
+  if (browser === 'chrome') {
+    res.download('public/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+      if (err) res.status(404).send('Extension not available');
+    });
+  } else if (browser === 'edge') {
+    res.download('public/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+      if (err) res.status(404).send('Extension not available');
+    });
+  } else if (browser === 'firefox') {
+    res.download('public/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
+      if (err) res.status(404).send('Extension not available');
+    });
+  } else {
+    res.status(404).send('Not found');
+  }
 });
+
+app.listen(PORT, () => console.log(`VPN browser running on http://localhost:${PORT} (no Wisp)`));
+}
