@@ -1,7 +1,7 @@
 // PVPN companion handshake.
 // A DOM marker is used because extension content scripts run in an isolated world.
 (function () {
-  const VERSION = '1.1.0';
+  const VERSION = '1.1.1';
   function announce() {
     if (!document.documentElement) return;
     document.documentElement.setAttribute('data-pvpn-extension', 'ready');
