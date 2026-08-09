@@ -1908,7 +1908,7 @@
     });
 
     const zoomFrame = document.getElementById('frame');
-    let zoomLevel = window.matchMedia('(max-width: 760px)').matches ? 0.3 : 1;
+    let zoomLevel = window.matchMedia('(max-width: 760px)').matches ? 0.25 : 1;
     function applyFrameZoom() {
       try {
         const frameDoc = zoomFrame.contentDocument;
