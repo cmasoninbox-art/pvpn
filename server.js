@@ -835,6 +835,42 @@ const fullPageProxyHandler = async (req, res) => {
       const proxyBase = '/go?url=' + encodeURIComponent(base.origin + '/');
       let body = await response.text();
 
+      // ── Captcha/bot-challenge fallback ─────────────────────────
+      // If the proxied response looks like a bot-challenge page (captcha,
+      // "enable javascript", reCAPTCHA, turnstile) AND we used a custom/Tor
+      // agent, retry once with direct egress (no proxy) since sites like
+      // Pornhub flag known Tor/proxy exit IPs.
+      const looksLikeChallenge = /enable\s*javascript|recaptcha|turnstile|captcha|bot.*detect|security.*check|just.*checking/i.test(body);
+      if (looksLikeChallenge && agent && !req.query._retried) {
+        try {
+          const retryController = new AbortController();
+          const retryTimeout = setTimeout(() => retryController.abort(), 20000);
+          const retryRes = await fetch(url, {
+            method: 'GET',
+            agent: undefined,  // direct egress, no Tor/proxy
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.9',
+              'Accept-Encoding': 'identity',
+              'Cache-Control': 'no-cache',
+            },
+            redirect: 'manual',
+            signal: retryController.signal,
+          });
+          clearTimeout(retryTimeout);
+          if (retryRes.ok) {
+            response = retryRes;
+            body = await response.text();
+            contentType = response.headers.get('content-type') || 'text/html';
+            console.log('[go] Captcha fallback: retried with direct egress for', targetHost);
+          }
+        } catch (retryErr) {
+          console.warn('[go] Captcha fallback failed, using original response:', retryErr.message);
+          // Original body retained — best-effort
+        }
+      }
+
       // Forward upstream headers, strip XFO/CSP blocking headers
       response.headers.forEach((value, name) => {
         const lower = name.toLowerCase();
