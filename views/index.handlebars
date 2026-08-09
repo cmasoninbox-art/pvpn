@@ -1907,14 +1907,31 @@
       display.textContent = '';
     });
 
-    let zoomLevel = 1;
+    const zoomFrame = document.getElementById('frame');
+    let zoomLevel = window.matchMedia('(max-width: 760px)').matches ? 0.82 : 1;
+    function applyFrameZoom() {
+      try {
+        const frameDoc = zoomFrame.contentDocument;
+        if (frameDoc && frameDoc.documentElement && zoomFrame.src !== 'about:blank') {
+          frameDoc.documentElement.style.setProperty('zoom', String(zoomLevel), 'important');
+          frameDoc.documentElement.style.setProperty('width', (100 / zoomLevel) + '%', 'important');
+          zoomFrame.style.removeProperty('zoom');
+          zoomFrame.style.width = '100%';
+          return;
+        }
+      } catch (e) {}
+      zoomFrame.style.zoom = zoomLevel;
+      zoomFrame.style.width = (100 / zoomLevel) + '%';
+    }
+    zoomFrame.addEventListener('load', () => setTimeout(applyFrameZoom, 120));
+    applyFrameZoom();
     document.getElementById('zoomInBtn').addEventListener('click', () => {
       zoomLevel = Math.min(3, zoomLevel + 0.1);
-      document.getElementById('frame').style.zoom = zoomLevel;
+      applyFrameZoom();
     });
     document.getElementById('zoomOutBtn').addEventListener('click', () => {
       zoomLevel = Math.max(0.3, zoomLevel - 0.1);
-      document.getElementById('frame').style.zoom = zoomLevel;
+      applyFrameZoom();
     });
 
     document.getElementById('bookmarkBtn').addEventListener('click', () => {
