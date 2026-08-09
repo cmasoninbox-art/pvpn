@@ -524,6 +524,1368 @@
     </footer>
   </div>
 
+  <script src="/baremux/index.js"></script>
+  <script src="/uv/uv.bundle.js"></script>
+  <script src="/uv/uv.config.js"></script>
+  <script>
+    // Start the durable service-worker proxy once for the whole browsing session.
+    window.pvpnProxyReady = (async function () {
+      if (!('serviceWorker' in navigator)) throw new Error('Service workers are not supported');
+      await navigator.serviceWorker.register(__uv$config.sw, { scope: __uv$config.prefix });
+      await navigator.serviceWorker.ready;
+      const connection = new BareMux.BareMuxConnection('/baremux/worker.js');
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      await connection.setTransport('/epoxy/index.mjs', [{
+        wisp: protocol + '//' + location.host + '/wisp/'
+      }]);
+      return true;
+    })().catch(function (err) {
+      console.error('[proxy] Service-worker engine failed:', err);
+      return false;
+    });
+
+    window.buildServiceWorkerProxyUrl = function (target) {
+      return __uv$config.prefix + __uv$config.encodeUrl(target);
+    };
+  </script>
+
+  <script>
+    // Disable right-click everywhere on this page
+    document.addEventListener('contextmenu', (e) => { e.preventDefault(); return false; });
+
+    // Server-rendered customizable tease buttons (label + destination)
+    window.AD_BUTTONS = {{{adButtonsJson}}};
+
+    const SPLASH = {
+      title: document.getElementById('splashTitle')?.textContent || 'Premium Required',
+      body: document.getElementById('splashBody')?.textContent || 'Search is for premium users only.',
+      links: [
+        { href: 'https://www.google.com', text: 'Google' },
+        { href: 'https://www.github.com', text: 'GitHub' },
+        { href: 'https://www.wikipedia.org', text: 'Wikipedia' },
+      ],
+    };
+
+    function applySplash() {
+      const title = document.getElementById('splashTitle');
+      const body = document.getElementById('splashBody');
+      const container = document.getElementById('splashLinks');
+      if (title) title.textContent = SPLASH.title;
+      if (body) body.textContent = SPLASH.body;
+      if (container) {
+        container.innerHTML = '';
+        SPLASH.links.forEach(link => {
+          const a = document.createElement('a');
+          a.className = 'pill';
+          a.href = link.href;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = link.text;
+          container.appendChild(a);
+        });
+      }
+    }
+
+    applySplash();
+
+    const premiumPartyBtn = document.getElementById('premiumPartyBtn');
+    const loginMenu = document.getElementById('loginMenu');
+    const loginForm = document.getElementById('loginForm');
+    const loginMsg = document.getElementById('loginMsg');
+    const loginClose = document.getElementById('loginClose');
+
+    if (premiumPartyBtn) {
+      premiumPartyBtn.addEventListener('click', () => {
+        window.location.href = '/premium';   // Premium Party button -> payment wall
+      });
+    }
+    if (loginClose && loginMenu) {
+      loginClose.addEventListener('click', () => {
+        loginMenu.style.display = 'none';
+      });
+    }
+    if (loginForm) {
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const user = document.getElementById('loginUser').value.trim();
+        const pass = document.getElementById('loginPass').value;
+        if (!user || !pass) { loginMsg.textContent = 'Enter username and password'; return; }
+        loginMsg.textContent = 'Checking...';
+        fetch('/api/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        }).then(r => r.json().then(j => ({ ok: r.ok, j }))).then(({ ok, j }) => {
+          if (!ok || !j.ok) { loginMsg.textContent = (j && j.error) || 'Login failed'; return; }
+          loginMsg.textContent = 'Welcome, ' + j.user.username + '!';
+          applyUserState(j.user);
+          setTimeout(() => {
+            loginMenu.style.display = 'none';
+            if (j.user.premium) { unlockPremiumUI(); }
+            else { alert('Logged in. Premium is unlocked by purchasing a plan.'); }
+          }, 600);
+        }).catch(() => { loginMsg.textContent = 'Network error'; });
+      });
+    }
+
+    const toggleRegister = document.getElementById('toggleRegister');
+    const registerForm = document.getElementById('registerForm');
+    const partyTitle = document.getElementById('partyTitle');
+    const loginFormEl = document.getElementById('loginForm');
+
+    function showRegister() {
+      loginFormEl.style.display = 'none';
+      registerForm.style.display = 'flex';
+      partyTitle.textContent = 'Premium Party Register';
+      toggleRegister.textContent = 'Have an account? Login';
+    }
+    function showLogin() {
+      registerForm.style.display = 'none';
+      loginFormEl.style.display = 'flex';
+      partyTitle.textContent = 'Premium Party Login';
+      toggleRegister.textContent = 'No account? Register';
+    }
+
+    if (toggleRegister && registerForm) {
+      toggleRegister.addEventListener('click', () => {
+        if (registerForm.style.display === 'flex') showLogin();
+        else showRegister();
+      });
+    }
+
+    // --- Browser-section gate (FREE / Premium Palace) ---
+    const browserGate = document.getElementById('browserGate');
+    const gateFreeBtn = document.getElementById('gateFreeBtn');
+    const gatePremiumBtn = document.getElementById('gatePremiumBtn');
+
+    function removeBrowserGate() {
+      if (browserGate) browserGate.classList.add('hidden');
+      const frame = document.getElementById('frame');
+      if (frame) frame.style.pointerEvents = 'auto';
+    }
+    function showBrowserGate() {
+      const premium = localStorage.getItem('premium') === '1';
+      const free = localStorage.getItem('freeAccess') === '1';
+      if (browserGate) browserGate.classList.toggle('hidden', premium || free);
+    }
+
+    if (gateFreeBtn) {
+      gateFreeBtn.addEventListener('click', () => {
+        try { localStorage.setItem('freeAccess', '1'); } catch (_) {}
+        removeBrowserGate();
+        const frame = document.getElementById('frame');
+        if (frame) {
+          // Use /go with embedded=1 — full URL rewriting (all links → /go?url=…)
+          // plus anti-bust injection.  No frame-bust because navigation stays
+          // same-origin (everything is /go?url=… on our host).
+          const proxyUrl = buildProxyUrl('https://www.pornhub.com');
+          frame.dataset.proxyUrl = proxyUrl;
+          frame.dataset.loading = '1';
+          frame.src = proxyUrl;
+        }
+      });
+    }
+
+    // --- Frame-bust watchdog (backstop) ---
+    // Only fires when the frame is NOT loading (proxy fetch takes 2-3s on Render).
+    // During load the contentWindow check throws (not ready), which we'd mistake for
+    // cross-origin and reset — creating an infinite loop that shows a blank frame.
+    const frameWatchdog = setInterval(() => {
+      const frame = document.getElementById('frame');
+      if (!frame || !frame.dataset.proxyUrl) return;
+      if (frame.dataset.loading === '1') return;  // skip during active fetch
+      let sameOrigin = true;
+      try { void frame.contentWindow.location.href; } catch (_) { sameOrigin = false; }
+      if (!sameOrigin) {
+        const back = frame.dataset.proxyUrl;
+        frame.dataset.loading = '1';
+        frame.src = back + (back.indexOf('?') > -1 ? '&' : '?') + '_w=' + Date.now();
+      }
+    }, 800);
+
+    // Track the last good proxy URL + clear loading flag on successful load.
+    const frameEl = document.getElementById('frame');
+    if (frameEl) {
+      frameEl.addEventListener('load', () => {
+        frameEl.dataset.loading = '0';
+        try {
+          const loc = frameEl.contentWindow.location.href;
+          if (loc && (loc.indexOf('/proxy') > -1 || loc.indexOf('/go') > -1)) frameEl.dataset.proxyUrl = loc;
+        } catch (_) { /* cross-origin — watchdog handles */ }
+      });
+    }
+    if (gatePremiumBtn) {
+      gatePremiumBtn.addEventListener('click', () => {
+        window.location.href = '/premium';   // Premium Palace -> payment wall
+      });
+    }
+
+    // On successful premium login, also drop the browser gate (all blocks removed).
+    function unlockPremiumUI() {
+      const gate = document.getElementById('premiumGate');
+      if (gate) gate.style.display = 'none';
+      const goBtn = document.querySelector('.nav button[type="submit"]');
+      if (goBtn) goBtn.disabled = false;
+      const inputEl = document.getElementById('url');
+      if (inputEl) { inputEl.disabled = false; inputEl.placeholder = 'Enter website or search...'; }
+      removeBrowserGate();
+    }
+
+    if (registerForm) {
+      registerForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const user = document.getElementById('regUser').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const pass = document.getElementById('regPass').value.trim();
+        const confirm = document.getElementById('regConfirm').value.trim();
+        if (!user || !email || !pass) { loginMsg.textContent = 'Fill in all fields'; return; }
+        if (pass !== confirm) { loginMsg.textContent = 'Passwords do not match'; return; }
+        loginMsg.textContent = 'Creating account...';
+        fetch('/api/register', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, email, password: pass })
+        }).then(r => r.json().then(j => ({ ok: r.ok, j }))).then(({ ok, j }) => {
+          if (!ok || !j.ok) { loginMsg.textContent = (j && j.error) || 'Registration failed'; return; }
+          loginMsg.textContent = 'Account created, ' + j.user.username + '!';
+          applyUserState(j.user);
+          setTimeout(() => {
+            loginMenu.style.display = 'none';
+            // Accounts are free by default — premium requires a paid plan.
+            alert('Account created! Log in and buy a plan to unlock premium.');
+          }, 600);
+        }).catch(() => { loginMsg.textContent = 'Network error'; });
+      });
+    }
+
+    // Apply server-authoritative user state (premium only if the backend says so).
+    function applyUserState(user) {
+      if (!user) { localStorage.removeItem('premium'); localStorage.removeItem('premiumUser'); return; }
+      localStorage.setItem('premiumUser', user.username);
+      if (user.premium) { localStorage.setItem('premium', '1'); }
+      else { localStorage.removeItem('premium'); }
+    }
+
+    // On page load, ask the server who we are (cookie-based session).
+    fetch('/api/me').then(r => r.json()).then(d => {
+      if (d && d.ok && d.user) {
+        applyUserState(d.user);
+        const lb = document.getElementById('logoutBtn'); if (lb) lb.style.display = 'block';
+        if (d.user.premium) unlockPremiumUI();
+      }
+    }).catch(() => {});
+
+    const input = document.getElementById('url');
+    const frame = document.getElementById('frame');
+    const display = document.getElementById('displayUrl');
+    const dot = document.getElementById('dot');
+    const status = document.getElementById('status');
+    const menuBtn = document.getElementById('menuBtn');
+    const menuDropdown = document.getElementById('menuDropdown');
+
+    function setConnected() {
+      dot.className = 'dot connected';
+      status.textContent = 'Connected';
+    }
+    function setDisconnected() {
+      dot.className = 'dot';
+      status.textContent = 'Disconnected';
+    }
+    function setDirectMode() {
+      dot.className = 'dot direct';
+      status.textContent = 'Direct egress';
+    }
+
+    menuBtn.addEventListener('click', () => {
+      menuDropdown.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!menuDropdown.contains(e.target) && e.target !== menuBtn) {
+        menuDropdown.classList.remove('open');
+      }
+    });
+
+    menuDropdown.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const action = btn.getAttribute('data-action');
+      menuDropdown.classList.remove('open');
+      if (action === 'login') {
+        menuDropdown.classList.remove('open');
+        showLogin();
+        if (loginMenu) loginMenu.style.display = 'flex';
+      } else if (action === 'signup') {
+        menuDropdown.classList.remove('open');
+        showRegister();
+        if (loginMenu) loginMenu.style.display = 'flex';
+      } else if (action === 'logout') {
+        fetch('/api/logout', { method: 'POST' }).then(() => {
+          localStorage.removeItem('premium'); localStorage.removeItem('premiumUser');
+          const lb = document.getElementById('logoutBtn'); if (lb) lb.style.display = 'none';
+          alert('Logged out.');
+        }).catch(() => {});
+      } else if (action === 'categories') {
+        alert('Categories page placeholder');
+      } else if (action === 'top') {
+        alert('Top Pages placeholder');
+      } else if (action === 'local') {
+        alert('Local Pages placeholder');
+      } else if (action === 'admin') {
+        // Load admin panel inside the same browser frame (no new tab)
+        display.textContent = '/admin-login';
+        frame.src = '/admin-login';
+        setConnected();
+      } else if (action === 'shop') {
+        display.textContent = '/shop';
+        frame.src = '/shop';
+        setConnected();
+      } else if (action === 'forum') {
+        display.textContent = '/forum';
+        frame.src = '/forum';
+        setConnected();
+      } else if (action === 'polls') {
+        display.textContent = '/forum#polls';
+        frame.src = '/forum';
+        setConnected();
+        // Switch to polls tab after load
+        setTimeout(() => {
+          try { frame.contentDocument.querySelector('[data-tab="polls"]').click(); } catch(_) {}
+        }, 1000);
+      } else if (action === 'top100') {
+        display.textContent = '/forum#lists';
+        frame.src = '/forum';
+        setConnected();
+        setTimeout(() => {
+          try { frame.contentDocument.querySelector('[data-tab="lists"]').click(); } catch(_) {}
+        }, 1000);
+      } else if (action === 'hottest') {
+        display.textContent = '/forum#hottest';
+        frame.src = '/forum';
+        setConnected();
+        setTimeout(() => {
+          try { frame.contentDocument.querySelector('[data-tab="hottest"]').click(); } catch(_) {}
+        }, 1000);
+      }
+    });
+
+    // Offer links from the burger menu -> load in the same browser frame
+    const OFFER_URLS = {
+      hot: 'https://example.com', save: 'https://example.com', limited: 'https://example.com',
+      gift: 'https://example.com', go: 'https://example.com', top: 'https://example.com',
+      trending: 'https://example.com', secure: 'https://example.com', premium: 'https://example.com',
+      match: 'https://example.com'
+    };
+    menuDropdown.addEventListener('click', (e) => {
+      const offerBtn = e.target.closest('[data-offer]');
+      if (!offerBtn) return;
+      const key = offerBtn.getAttribute('data-offer');
+      const target = OFFER_URLS[key] || 'https://example.com';
+      menuDropdown.classList.remove('open');
+      display.textContent = target;
+      frame.src = buildProxyUrl(target);
+      setConnected();
+    });
+
+    const vpnMode = document.getElementById('vpnMode');
+    const localProxy = document.getElementById('localProxy');
+    vpnMode.addEventListener('change', () => {
+      localProxy.style.display = vpnMode.value === 'local' ? 'inline-block' : 'none';
+      saveSettings();
+    });
+
+    async function loadSettings() {
+      try {
+        const res = await fetch('/vpn-settings');
+        const data = await res.json();
+        if (data.localProxy) localProxy.value = data.localProxy;
+        if (data.vpnMode) vpnMode.value = data.vpnMode;
+        else if (typeof data.builtinProxyEnabled !== 'undefined') {
+          vpnMode.value = data.builtinProxyEnabled ? 'builtin' : 'local';
+        }
+        localProxy.style.display = vpnMode.value === 'local' ? 'inline-block' : 'none';
+      } catch (_) {}
+    }
+
+    async function saveSettings() {
+      try {
+        await fetch('/vpn-settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vpnMode: vpnMode.value, localProxy: localProxy.value.trim(), builtinProxyEnabled: vpnMode.value === 'builtin' }),
+        });
+      } catch (_) {}
+    }
+
+    localProxy.addEventListener('input', saveSettings);
+
+    function buildProxyUrl(query) {
+      return window.buildServiceWorkerProxyUrl(query);
+    }
+
+    document.getElementById('fsBtn').addEventListener('click', () => {
+      const iframe = document.getElementById('frame');
+      if (iframe.requestFullscreen) iframe.requestFullscreen();
+      else if (iframe.webkitRequestFullscreen) iframe.webkitRequestFullscreen();
+      else if (iframe.msRequestFullscreen) iframe.msRequestFullscreen();
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+      const iframe = document.getElementById('frame');
+      iframe.src = iframe.src;
+    });
+
+    document.getElementById('openTabBtn').addEventListener('click', () => {
+      const iframe = document.getElementById('frame');
+      const display = document.getElementById('displayUrl');
+      let src = iframe.src;
+      if (!src || src === 'about:blank' || src === window.location.href) {
+        const fallback = display.textContent && display.textContent !== 'No page loaded' ? display.textContent : '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') + '&country=us&premium=0';
+        src = fallback.startsWith('http') ? fallback : window.location.origin + fallback;
+      }
+      window.open(src, '_blank');
+    });
+
+    document.getElementById('homeBtn').addEventListener('click', () => {
+      document.getElementById('url').value = '';
+      document.getElementById('frame').src = 'about:blank';
+      display.textContent = '';
+    });
+
+    let zoomLevel = 1;
+    document.getElementById('zoomInBtn').addEventListener('click', () => {
+      zoomLevel = Math.min(3, zoomLevel + 0.1);
+      document.getElementById('frame').style.zoom = zoomLevel;
+    });
+    document.getElementById('zoomOutBtn').addEventListener('click', () => {
+      zoomLevel = Math.max(0.3, zoomLevel - 0.1);
+      document.getElementById('frame').style.zoom = zoomLevel;
+    });
+
+    document.getElementById('bookmarkBtn').addEventListener('click', () => {
+      const url = display.textContent;
+      if (!url || url === window.location.href) return;
+      const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+      bookmarks.unshift({ url, title: new URL(url).hostname, ts: Date.now() });
+      localStorage.setItem('bookmarks', JSON.stringify(bookmarks.slice(0, 50)));
+      alert('Bookmarked: ' + url);
+    });
+
+    document.getElementById('historyBtn').addEventListener('click', () => {
+      const history = JSON.parse(localStorage.getItem('history') || '[]');
+      if (!history.length) return alert('No history yet');
+      const list = history.slice(0, 20).map((h, i) => (i + 1) + '. ' + h.url).join('\n');
+      alert('Recent history:\n\n' + list);
+    });
+
+    let darkTheme = true;
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      darkTheme = !darkTheme;
+      document.body.style.background = darkTheme ? '#000' : '#fff';
+      document.body.style.color = darkTheme ? '#fff' : '#000';
+      document.querySelector('.toolbar').style.background = darkTheme ? '#111' : '#eee';
+      document.querySelector('.toolbar').style.color = darkTheme ? '#ff7a00' : '#333';
+    });
+
+    document.getElementById('speedBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('speedBtn');
+      btn.disabled = true;
+      btn.textContent = '...';
+      try {
+        const start = performance.now();
+        await fetch('/proxy?url=' + encodeURIComponent('https://www.google.com/generate_204'), {
+          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+          signal: AbortSignal.timeout(8000),
+        });
+        const ms = Math.round(performance.now() - start);
+        alert('Ping: ' + ms + 'ms');
+      } catch (e) {
+        alert('Speed test failed: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚡';
+      }
+    });
+
+    // Track browsing history
+    const originalBuildProxyUrl = buildProxyUrl;
+    window.buildProxyUrl = function(query) {
+      try {
+        const history = JSON.parse(localStorage.getItem('history') || '[]');
+        history.unshift({ url: query, ts: Date.now() });
+        localStorage.setItem('history', JSON.stringify(history.slice(0, 100)));
+      } catch (_) {}
+      return originalBuildProxyUrl(query);
+    };
+
+    function applySearchLock() {
+      const premium = localStorage.getItem('premium') === '1';
+      input.disabled = !premium;
+      const goBtn = document.querySelector('.nav button[type="submit"]');
+      if (goBtn) goBtn.disabled = !premium;
+      if (!premium) {
+        input.placeholder = 'Search locked — upgrade to premium';
+      } else {
+        input.placeholder = 'Enter website or search...';
+      }
+    }
+
+    const videoQuality = document.getElementById('videoQuality');
+    const playbackSpeed = document.getElementById('playbackSpeed');
+    const subtitleToggle = document.getElementById('subtitleToggle');
+    const mediaLock = document.getElementById('mediaLock');
+
+    function applyMediaGate() {
+      const premium = localStorage.getItem('premium') === '1';
+      if (videoQuality) {
+        for (const opt of videoQuality.options) {
+          const locked = opt.dataset.premium === '1' && !premium;
+          opt.disabled = locked;
+        }
+        if (!premium && videoQuality.value !== '480') {
+          videoQuality.value = '480';
+        }
+        videoQuality.disabled = false; // selector stays usable; non-premium options are disabled
+      }
+      if (mediaLock) {
+        mediaLock.textContent = premium ? '' : 'Non-premium: locked to 480p';
+      }
+      saveMediaSettings();
+      enforceMedia();
+    }
+
+    // VPN tier gate: free users only get the slow built-in (Tor) node;
+    // country selection + faster nodes unlock with premium.
+    function applyVpnGate() {
+      const premium = localStorage.getItem('premium') === '1';
+      const countrySel = document.getElementById('country');
+      const vpnSel = document.getElementById('vpnMode');
+      const vpnNote = document.getElementById('vpnNote');
+      if (vpnSel) {
+        vpnSel.value = 'direct';
+        vpnSel.disabled = !premium;
+      }
+      if (countrySel) {
+        countrySel.value = 'us';
+        countrySel.disabled = true;
+      }
+      if (vpnNote) vpnNote.textContent = premium ? 'Direct egress — no VPN/Tor' : 'Free: direct egress — upgrade for VPN';
+      setDirectMode();
+    }
+
+    // Non-premium tease screen: dark translucent overlay covering the browser,
+    // 3 customizable yellow buttons. Premium OR free-access users get the browser.
+    function applyTease() {
+      const premium = localStorage.getItem('premium') === '1';
+      const free = localStorage.getItem('freeAccess') === '1';
+      const unlocked = premium || free;
+      const gate = document.getElementById('browserGate');
+      if (gate) gate.classList.toggle('hidden', unlocked);
+      const frame = document.getElementById('frame');
+      if (frame) frame.style.pointerEvents = unlocked ? 'auto' : 'none';
+    }
+
+    // Render the 3 customizable buttons from server config (label + destination).
+    function applyAdButtons() {
+      const host = document.getElementById('teaseBtns');
+      if (!host) return;
+      const btns = (window.AD_BUTTONS && window.AD_BUTTONS.length) ? window.AD_BUTTONS : [
+        { label: 'HOT DEALS', url: 'https://example.com' },
+        { label: 'GO PREMIUM', url: 'https://example.com' },
+        { label: 'FREE GIFT', url: 'https://example.com' },
+      ];
+      host.innerHTML = '';
+      btns.slice(0, 3).forEach(b => {
+        const el = document.createElement('button');
+        el.className = 'tease-btn';
+        el.textContent = b.label || 'BUTTON';
+        el.addEventListener('click', () => {
+          if (b.free) {
+            // FREE: unlock the browser only (search stays locked) and load the frame
+            // straight to the destination through the built-in VPN.
+            try { localStorage.setItem('freeAccess', '1'); } catch (_) {}
+            const overlay = document.getElementById('teaseOverlay');
+            if (overlay) overlay.classList.remove('show');
+            const frame = document.getElementById('frame');
+            if (frame) {
+              frame.style.pointerEvents = 'auto';
+              const dest = b.url || 'https://www.pornhub.com';
+              frame.src = buildProxyUrl(dest);
+            }
+            return;
+          }
+          const url = b.url || 'https://example.com';
+          if (url.startsWith('http')) window.open(url, '_blank', 'noopener');
+        });
+        host.appendChild(el);
+      });
+    }
+
+    function saveMediaSettings() {
+      const payload = {
+        quality: videoQuality ? videoQuality.value : '480',
+        speed: playbackSpeed ? playbackSpeed.value : '1',
+        subtitles: subtitleToggle ? subtitleToggle.value : 'off'
+      };
+      try { localStorage.setItem('mediaSettings', JSON.stringify(payload)); } catch (_) {}
+      try {
+        fetch('/media-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      } catch (_) {}
+    }
+
+    function enforceMedia() {
+      const premium = localStorage.getItem('premium') === '1';
+      const frameDoc = (() => { try { return frame.contentDocument; } catch (_) { return null; } })();
+      if (!frameDoc) return; // cross-origin: cannot reach into proxied site's video
+      frameDoc.querySelectorAll('video').forEach(v => {
+        if (!premium && v.videoHeight > 480) {
+          // try to nudge down via height; true resolution is site-controlled
+          v.style.maxHeight = '480px';
+        }
+        try {
+          if (playbackSpeed) v.playbackRate = parseFloat(playbackSpeed.value) || 1;
+          const tracks = v.textTracks;
+          if (tracks && subtitleToggle) {
+            for (let i = 0; i < tracks.length; i++) {
+              tracks[i].mode = subtitleToggle.value === 'on' ? 'showing' : 'hidden';
+            }
+          }
+        } catch (_) {}
+      });
+    }
+
+    if (videoQuality) videoQuality.addEventListener('change', () => {
+      const opt = videoQuality.options[videoQuality.selectedIndex];
+      if (opt.dataset.premium === '1' && localStorage.getItem('premium') !== '1') {
+        videoQuality.value = '480';
+        alert('720p/1080p require Premium Party');
+        return;
+      }
+      saveMediaSettings();
+      enforceMedia();
+    });
+    if (playbackSpeed) playbackSpeed.addEventListener('change', () => { saveMediaSettings(); enforceMedia(); });
+    if (subtitleToggle) subtitleToggle.addEventListener('change', () => { saveMediaSettings(); enforceMedia(); });
+
+    frame.addEventListener('load', enforceMedia);
+
+    loadSettings();
+    applySearchLock();
+    applyMediaGate();
+    applyVpnGate();
+    applyTease();
+    applyAdButtons();
+
+    // Auto-load Pornhub on page start (no click needed)
+    (function autoLoadBrowser() {
+      const frame = document.getElementById('frame');
+      const free = localStorage.getItem('freeAccess') === '1';
+      const premium = localStorage.getItem('premium') === '1';
+      if (frame && (free || premium)) {
+        window.pvpnProxyReady.then(() => { frame.src = buildProxyUrl('https://www.pornhub.com'); });
+        const du = document.getElementById('displayUrl');
+        if (du) du.textContent = 'pornhub.com';
+      }
+    })();
+    window.addEventListener('storage', () => { applySearchLock(); applyMediaGate(); applyVpnGate(); applyTease(); applyAdButtons(); });
+
+    document.getElementById('navForm').addEventListener('submit', function(e) {
+      // ALWAYS block native submit — otherwise the whole page reloads (the "refresh on search" bug)
+      e.preventDefault();
+      const premium = localStorage.getItem('premium') === '1';
+      if (!premium) {
+        document.getElementById('premiumGate').style.display = 'flex';
+        return;
+      }
+      let query = input.value.trim();
+      if (!query) return;
+      if (!/^https?:\/\//i.test(query)) {
+        query = 'https://www.google.com/search?q=' + encodeURIComponent(query);
+      }
+      display.textContent = query;
+      frame.src = buildProxyUrl(query);
+      setConnected();
+    });
+
+    document.getElementById('premiumUpgrade').addEventListener('click', () => {
+      // Route to the real payment wall — premium is granted by the Stripe webhook, not client-side.
+      window.location.href = '/premium';
+    });
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('navForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    });
+
+    function proxyDisplayUrl(raw) {
+      try {
+        const u = new URL(raw, location.origin);
+        const target = u.searchParams.get('url');
+        if (target) { try { return new URL(target).host; } catch(_) { return target; } }
+      } catch(_) {}
+      return raw;
+    }
+
+    frame.addEventListener('load', () => {
+      try {
+        const u = frame.contentWindow.location.href;
+        if (u && u !== 'about:blank') display.textContent = proxyDisplayUrl(u);
+      } catch (_) {
+        // cross-origin frames throw; leave display as-is
+      }
+    });
+  </script>
+  <script>
+    (function() {
+      const gate = document.getElementById('ageGate');
+      const ageTitle = document.getElementById('ageTitle');
+      const ageText = document.getElementById('ageText');
+      const ageActions = document.getElementById('ageActions');
+      const layout = document.querySelector('.layout');
+      if (!gate || !ageActions) return;
+
+      function setChoice(value) {
+        const record = { value, ts: Date.now() };
+        try { localStorage.setItem('ageChoice', JSON.stringify(record)); } catch (_) {}
+      }
+
+      function getChoice() {
+        try {
+          const raw = localStorage.getItem('ageChoice');
+          if (!raw) return null;
+          const record = JSON.parse(raw);
+          if (Date.now() - record.ts > 3600000) {
+            localStorage.removeItem('ageChoice');
+            return null;
+          }
+          return record.value;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function showMessage(title, text) {
+        ageActions.style.display = 'none';
+        ageTitle.textContent = title;
+        ageText.textContent = text;
+        ageText.style.color = '#ff7a00';
+        ageText.style.fontSize = '20px';
+        ageText.style.fontWeight = '900';
+        ageText.style.textTransform = 'uppercase';
+      }
+
+      function unlock() {
+        gate.style.display = 'none';
+        if (layout) layout.style.display = 'flex';
+      }
+
+      const choice = getChoice();
+      if (choice === 'yes') {
+        unlock();
+        alert('Have fun legend');
+      } else if (choice === 'no') {
+        showMessage('No Entry', 'Grow up, come back later bud!');
+        if (layout) layout.style.display = 'none';
+      } else {
+        gate.style.display = 'flex';
+        if (layout) layout.style.display = 'none';
+      }
+
+      document.getElementById('ageYes').addEventListener('click', function() {
+        setChoice('yes');
+        unlock();
+        showBrowserGate();
+        alert('Have fun legend');
+      });
+      document.getElementById('ageNo').addEventListener('click', function() {
+        setChoice('no');
+        showMessage('No Entry', 'Grow up, come back later bud!');
+        if (layout) layout.style.display = 'none';
+      });
+    })();
+  </script>
+  <button id="floatingLogout" title="End Session">END SESSION</button>
+
+  <div id="terminatedScreen">
+    <div class="mk-wrap">
+      <div class="mk-top">FINISH HIM</div>
+      <div class="mk-word">TERMINATED</div>
+      <div class="mk-sub">SESSION ENDED</div>
+    </div>
+  </div>
+
+  <script>
+    // Big red floating END SESSION button (bottom-left): clears browser access,
+    // flashes a Mortal Kombat-style "TERMINATED" screen, then redirects to google.com.
+    (function () {
+      const btn = document.getElementById('floatingLogout');
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        try { localStorage.removeItem('freeAccess'); localStorage.removeItem('premium'); } catch (_) {}
+        const frame = document.getElementById('frame');
+        if (frame) { frame.style.pointerEvents = 'none'; frame.src = 'about:blank'; }
+        const term = document.getElementById('terminatedScreen');
+        if (term) term.classList.add('show');
+        setTimeout(() => { window.location.href = 'https://www.google.com'; }, 2200);
+      });
+    })();
+  </script>
+  <!-- Multi-network ad manager: loads enabled ad networks from /api/ad-config -->
+  <script src="/js/ad-manager.js"></script>
+  <!-- Live chat: draggable, resizable, see-through chat box with tier display -->
+  <script src="/js/chat.js"></script>
+  <!-- Loot crate system: animated crate openings with prizes -->
+  <script src="/js/loot-crate.js"></script>
+
+<!-- Extension Install Prompt -->
+<div id="extPrompt" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+  <div style="background:#111;color:#ff7a00;padding:30px;border-radius:10px;max-width:420px;margin:20px;border:2px solid #ff7a00;position:relative;">
+    <button onclick="closeExtPrompt()" aria-label="Close" title="Close" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#888;font-size:22px;cursor:pointer;line-height:1;padding:4px 6px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">×</button>
+    <h3 style="margin:0 0 15px 0;">Need Full Video Access?</h3>
+    <p style="margin:0 0 15px 0;line-height:1.4;color:#ccc;">Pornhub blocks embedding. Install our extension for inline playback:</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button onclick="dlExt('chrome')" style="background:#ff7a00;color:#000;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Chrome</button>
+      <button onclick="dlExt('edge')" style="background:#000;color:#fff;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Edge</button>
+      <button onclick="dlExt('firefox')" style="background:#ff9000;color:#000;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Firefox</button>
+      <button onclick="dlExt('universal')" style="background:#fff;color:#000;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Universal</button>
+    </div>
+    <p style="margin:15px 0 0 0;font-size:12px;color:#888;">1. Click download 2. Enable Developer Mode 3. Load unpacked (Universal installs all browsers automatically)</p>
+  </div>
+</div>
+<script>function dlExt(b){var m={'chrome':'/vpn-browser-extension.zip','edge':'/vpn-browser-extension.zip','firefox':'/vpn-browser-extension.xpi','universal':'/PVPN-Browser-Extension-Setup.exe'};window.open(m[b],'_blank');}
+var _extDismissed=false;
+function closeExtPrompt(){_extDismissed=true;var p=document.getElementById('extPrompt');if(p)p.style.display='none';}
+document.getElementById('extPrompt').addEventListener('click',function(e){if(e.target===this)closeExtPrompt();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeExtPrompt();});
+// Extension installation is user-initiated; do not cover a successfully loaded proxy page.</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VPN Browser</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    #ageGate {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      color: #ff7a00;
+      font-family: Arial, sans-serif;
+    }
+    #ageGate .box {
+      background: #111;
+      border: 2px solid #ff7a00;
+      padding: 24px 28px;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+      border-radius: 6px;
+      box-shadow: 0 0 40px rgba(255,122,0,0.25);
+    }
+    #ageGate h2 {
+      margin: 0 0 12px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+    #ageGate p {
+      color: #ccc;
+      margin: 0 0 18px;
+    }
+    #ageGate .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    #ageGate button {
+      background: #ff7a00;
+      color: #000;
+      border: 0;
+      padding: 10px 16px;
+      font-weight: 900;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    #ageGate button.no {
+      background: #333;
+      color: #ff7a00;
+      border: 1px solid #ff7a00;
+    }
+    #premiumGate {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      font-family: Arial, sans-serif;
+    }
+    #premiumGate .box {
+      background: #111;
+      border: 2px solid #ff7a00;
+      padding: 24px 28px;
+      max-width: 520px;
+      width: 92%;
+      text-align: center;
+      border-radius: 6px;
+      box-shadow: 0 0 40px rgba(255,122,0,0.25);
+      color: #ff7a00;
+    }
+    #premiumGate h2 {
+      margin: 0 0 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+    #premiumGate p {
+      color: #ccc;
+      margin: 0 0 16px;
+    }
+    #premiumGate .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    #premiumGate button {
+      background: #ff7a00;
+      color: #000;
+      border: 0;
+      padding: 10px 16px;
+      font-weight: 900;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    #premiumGate .pill {
+      display: inline-block;
+      background: #ff7a00;
+      color: #000;
+      text-decoration: none;
+      padding: 10px 14px;
+      font-weight: 900;
+      text-transform: uppercase;
+      border-radius: 4px;
+    }
+    #premiumGate .pill:hover {
+      background: #e56d00;
+    }
+    #loginMenu {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      align-items: center;
+      justify-content: center;
+      z-index: 9998;
+      font-family: Arial, sans-serif;
+    }
+    #loginMenu .box {
+      background: #111;
+      border: 2px solid #ff7a00;
+      padding: 24px 28px;
+      max-width: 360px;
+      width: 92%;
+      text-align: center;
+      border-radius: 6px;
+      box-shadow: 0 0 40px rgba(255,122,0,0.25);
+      color: #ff7a00;
+    }
+    #loginMenu h2 {
+      margin: 0 0 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    /* Browser-section gate: SEE-THROUGH box over JUST the browser area (not full screen).
+       Big yellow FREE button + Premium Palace login button, centered. */
+    .browser { position: relative; }
+    #browserGate {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.65);   /* see-through, not a solid block */
+      backdrop-filter: blur(4px);
+      width: 90%;
+      max-width: 500px;
+    }
+    #browserGate.hidden { display: none; }
+    .gate-inner {
+      text-align: center;
+      padding: 28px 32px;
+      background: rgba(10,10,10,0.85);
+      border: 2px solid rgba(255,122,0,0.6);
+      border-radius: 12px;
+      max-width: 460px;
+      width: 100%;
+      box-shadow: 0 0 60px rgba(255,122,0,0.2);
+    }
+    .gate-title {
+      color: #fff;
+      font-size: 22px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 6px;
+    }
+    .gate-sub {
+      color: #ff9000;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+    }
+    .gate-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .gate-free {
+      background: #ff9000;            /* big yellow FREE button */
+      color: #000;
+      border: 0;
+      border-radius: 8px;
+      padding: 20px 32px;
+      min-width: 180px;
+      font-weight: 900;
+      font-size: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: transform 0.1s ease, filter 0.1s ease;
+      box-shadow: 0 0 30px rgba(255,144,0,0.4);
+    }
+    .gate-free:hover { transform: translateY(-2px) scale(1.02); filter: brightness(1.08); box-shadow: 0 0 40px rgba(255,144,0,0.6); }
+    .gate-premium {
+      background: #111;
+      color: #ff7a00;
+      border: 2px solid #ff7a00;
+      border-radius: 8px;
+      padding: 18px 22px;
+      min-width: 160px;
+      font-weight: 900;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: background 0.1s ease, color 0.1s ease;
+    }
+    .gate-premium:hover { background: #ff7a00; color: #000; }
+    .gate-close {
+      background: #111;
+      color: #ff7a00;
+      border: 2px solid #ff7a00;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.1s ease, color 0.1s ease;
+      align-self: center;
+    }
+    .gate-close:hover { background: #ff7a00; color: #000; }
+
+    /* Themes (applied via body.theme-X) */
+    body.theme-default { --bg: #000; --accent: #ff7a00; --text: #fff; }
+    body.theme-dark { --bg: #0a0a0a; --accent: #ff7a00; --text: #e8e8e8; }
+    body.theme-blue { --bg: #04101f; --accent: #36a3ff; --text: #cfe6ff; }
+    body.theme-green { --bg: #06140c; --accent: #2ecc71; --text: #d6ffe6; }
+    body.theme-purple { --bg: #120618; --accent: #b06bff; --text: #ecd6ff; }
+    body.theme-light { --bg: #f2f2f2; --accent: #ff7a00; --text: #111; }
+    body { background: var(--bg, #000); color: var(--text, #fff); }
+    .toolbar { background: var(--bg, #000); }
+    .premium-party, .tease-btn { background: var(--accent, #ff7a00); }
+    #premiumPartyBtn { background: #e02424 !important; color: #fff !important; }
+    .vpn-note, a { color: var(--accent, #ff7a00); }
+
+    /* Paid ads rendered on the site */
+    .paid-ad { display: block; margin: 10px auto; max-width: 90%; border: 1px solid var(--accent, #ff7a00); border-radius: 6px; overflow: hidden; text-decoration: none; }
+    .paid-ad img { display: block; width: 100%; }
+    .paid-ad .paid-ad-label { display: block; padding: 6px 10px; color: var(--accent, #ff7a00); font-weight: 700; text-transform: uppercase; font-size: 12px; }
+
+    /* Big red END SESSION floating button (bottom-left) */
+    #floatingLogout {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      z-index: 9000;
+      background: #e11d1d;
+      color: #fff;
+      border: 2px solid #ff0000;
+      border-radius: 10px;
+      padding: 16px 22px;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 0 22px rgba(255,0,0,0.55);
+    }
+    #floatingLogout:hover { filter: brightness(1.12); transform: scale(1.04); }
+
+    /* Mortal Kombat style TERMINATED screen */
+    #terminatedScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      background: #000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #ff0000;
+      font-family: 'Impact', 'Arial Black', sans-serif;
+    }
+    #terminatedScreen.show { display: flex; }
+    #terminatedScreen .mk-wrap { animation: mkPulse 0.5s ease-in-out infinite alternate; }
+    #terminatedScreen .mk-top { font-size: 28px; letter-spacing: 4px; color: #fff; text-shadow: 0 0 12px #ff0000; }
+    #terminatedScreen .mk-word { font-size: 120px; line-height: 1; letter-spacing: 8px; text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000; }
+    #terminatedScreen .mk-sub { font-size: 22px; letter-spacing: 6px; color: #ff5252; margin-top: 10px; }
+    @keyframes mkPulse { from { transform: scale(0.96); } to { transform: scale(1.06); } }
+  </style>
+</head>
+<body class="theme-{{theme}}">
+  <div id="ageGate">
+    <div class="box">
+      <h2 id="ageTitle">18+ Content Warning</h2>
+      <p id="ageText">This site may contain adult content. Are you 18 or older?</p>
+      <div class="actions" id="ageActions">
+        <button id="ageYes" type="button">Yes</button>
+        <button id="ageNo" class="no" type="button">No</button>
+      </div>
+    </div>
+  </div>
+  <div id="premiumGate">
+    <div class="box">
+      <h2 id="splashTitle">Premium Required</h2>
+      <p id="splashBody">Search is for premium users only.</p>
+      <div class="actions">
+        <button id="premiumUpgrade" type="button">Upgrade to Premium</button>
+      </div>
+      <div style="margin-top:18px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;" id="splashLinks">
+        <a class="pill" href="https://www.google.com" target="_blank" rel="noopener">Google</a>
+        <a class="pill" href="https://www.github.com" target="_blank" rel="noopener">GitHub</a>
+        <a class="pill" href="https://www.wikipedia.org" target="_blank" rel="noopener">Wikipedia</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="loginMenu">
+    <div class="box">
+      <h2 id="partyTitle">Premium Party Login</h2>
+
+      <form id="loginForm" style="display:flex; flex-direction:column; gap:10px; margin-top:12px;">
+        <input id="loginUser" type="text" placeholder="Username" style="padding:8px; border-radius:3px; border:1px solid #333; background:#000; color:#fff;" />
+        <input id="loginPass" type="password" placeholder="Password" style="padding:8px; border-radius:3px; border:1px solid #333; background:#000; color:#fff;" />
+        <button type="submit" style="background:#ff7a00; color:#000; border:0; padding:10px; font-weight:900; text-transform:uppercase; cursor:pointer; border-radius:4px;">Enter Party</button>
+      </form>
+
+      <form id="registerForm" style="display:none; flex-direction:column; gap:10px; margin-top:12px;">
+        <input id="regUser" type="text" placeholder="Username" style="padding:8px; border-radius:3px; border:1px solid #333; background:#000; color:#fff;" />
+        <input id="regEmail" type="email" placeholder="Email" style="padding:8px; border-radius:3px; border:1px solid #333; background:#000; color:#fff;" />
+        <input id="regPass" type="password" placeholder="Password" style="padding:8px; border-radius:3px; border:1px solid #333; background:#000; color:#fff;" />
+        <input id="regConfirm" type="password" placeholder="Confirm Password" style="padding:8px; border-radius:3px; border:1px solid #333; background:#000; color:#fff;" />
+        <button type="submit" style="background:#ff7a00; color:#000; border:0; padding:10px; font-weight:900; text-transform:uppercase; cursor:pointer; border-radius:4px;">Create Account</button>
+      </form>
+
+      <p id="loginMsg" style="color:#ff7a00; margin-top:10px; min-height:16px;"></p>
+
+      <button id="toggleRegister" type="button" style="margin-top:8px; background:transparent; color:#ff7a00; border:0; cursor:pointer; text-decoration:underline; font-size:13px;">No account? Register</button>
+      <button id="loginClose" type="button" style="margin-top:8px; background:transparent; color:#ff7a00; border:1px solid #ff7a00; padding:6px 12px; cursor:pointer; border-radius:4px;">Close</button>
+    </div>
+  </div>
+  <div id="teaseOverlay" class="hidden" style="display:none"></div>
+  <div class="layout">
+    <div class="ad-slot ad-top" id="ad-slot-top"><a href="/donate"><img class="top-banner" src="{{bannerImage}}" alt="DONATE TO" /></a></div>
+
+    <header class="toolbar">
+      <div class="brand">
+        <button type="button" id="menuBtn" title="Menu">☰</button>
+        VPN Browser
+        <div class="menu-dropdown" id="menuDropdown">
+        <button class="menu-item heading">Account</button>
+        <button class="menu-item" data-action="login">Login</button>
+        <button class="menu-item" data-action="signup">Sign Up — if you're ready boys line up</button>
+        <button class="menu-item" id="logoutBtn" data-action="logout" style="display:none; color:#ff7a00;">Log Out</button>
+        <button class="menu-item heading" style="margin-top:6px">Pages</button>
+        <button class="menu-item" data-action="shop">🏪 Shop</button>
+        <button class="menu-item" data-action="admin">Admin Panel</button>
+        <button class="menu-item" data-action="forum">💬 Members Forum</button>
+        <button class="menu-item" data-action="polls">📊 Daily Polls</button>
+        <button class="menu-item" data-action="top100">🏆 Top 100 Lists</button>
+        <button class="menu-item" data-action="hottest">🔥 Hottest URLs</button>
+        <button class="menu-item heading" style="margin-top:6px">Offers</button>
+        <button class="menu-item" data-offer="hot">🔥 Hot Deals</button>
+        <button class="menu-item" data-offer="save">💰 Save Big</button>
+        <button class="menu-item" data-offer="limited">⚡ Limited Time</button>
+        <button class="menu-item" data-offer="gift">🎁 Free Gift</button>
+        <button class="menu-item" data-offer="go">🚀 Go Pro</button>
+        <button class="menu-item" data-offer="top">🏆 Top Rated</button>
+        <button class="menu-item" data-offer="trending">📈 Trending</button>
+        <button class="menu-item" data-offer="secure">🔒 Secure</button>
+        <button class="menu-item" data-offer="premium">⭐ Premium</button>
+        <button class="menu-item" data-offer="match">🎯 Best Match</button>
+        </div>
+      </div>
+      <form class="nav" id="navForm">
+        <select id="country">
+          {{#each countries}}
+            <option value="{{this.code}}">{{this.flag}} {{this.name}}</option>
+          {{/each}}
+        </select>
+        <select id="vpnMode">
+          <option value="builtin">Built-in VPN</option>
+          <option value="local">Local VPN</option>
+        </select>
+        <input id="localProxy" type="text" value="http://127.0.0.1:8080" placeholder="http://127.0.0.1:8080" style="display:none" />
+        <input id="url" type="text" placeholder="Enter website or search..." />
+        <button type="submit">Go</button>
+        <button type="button" id="fsBtn" title="Fullscreen">⛶</button>
+        <button type="button" id="homeBtn" title="Home">🏠</button>
+        <button type="button" id="zoomOutBtn" title="Zoom Out">−</button>
+        <button type="button" id="zoomInBtn" title="Zoom In">+</button>
+        <button type="button" id="bookmarkBtn" title="Bookmark">☆</button>
+        <button type="button" id="historyBtn" title="History">🕒</button>
+        <button type="button" id="themeBtn" title="Toggle Theme">◐</button>
+        <button type="button" id="speedBtn" title="Speed Test">⚡</button>
+      </form>
+      <button type="button" id="premiumPartyBtn" title="Premium Party" style="background:#e02424;color:#fff;border:0;padding:8px 12px;font-weight:900;text-transform:uppercase;border-radius:3px;cursor:pointer;">Premium Party</button>
+      <div class="connection">
+        <span class="dot" id="dot"></span>
+        <span id="status">Disconnected</span>
+      </div>
+      <span id="vpnNote" class="vpn-note"></span>
+    </header>
+
+    <div class="main">
+      <aside class="left-ads" id="ad-slot-left">{{{ads.left}}}</aside>
+
+      <section class="browser">
+        <div class="browser-bar">
+          <span id="displayUrl">No page loaded</span>
+          <button type="button" id="refreshBtn" title="Refresh Browser" style="float:right;background:#ff7a00;color:#000;border:0;padding:4px 10px;border-radius:3px;font-weight:900;font-size:11px;cursor:pointer;text-transform:uppercase;">⟳ Refresh</button>
+          <button type="button" id="openTabBtn" title="Open in new tab" style="float:right;background:#ff9000;color:#000;border:0;padding:4px 10px;border-radius:3px;font-weight:900;font-size:11px;cursor:pointer;text-transform:uppercase;margin-right:6px;">↗ Open</button>
+        </div>
+        <div class="media-bar" id="mediaBar">
+          <label class="media-field">Quality
+            <select id="videoQuality">
+              <option value="480">480p</option>
+              <option value="720" data-premium="1">720p (Premium)</option>
+              <option value="1080" data-premium="1">1080p (Premium)</option>
+            </select>
+          </label>
+          <label class="media-field">Speed
+            <select id="playbackSpeed">
+              <option value="0.5">0.5x</option>
+              <option value="1" selected>1x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2x</option>
+            </select>
+          </label>
+          <label class="media-field">Subtitles
+            <select id="subtitleToggle">
+              <option value="off" selected>Off</option>
+              <option value="on">On</option>
+            </select>
+          </label>
+          <span id="mediaLock" class="media-lock"></span>
+        </div>
+        <div id="browserGate">
+          <div class="gate-inner">
+            <div class="gate-title">Browse for Free</div>
+            <div class="gate-sub">No signup needed — or go Premium for everything</div>
+            <div class="gate-btns">
+              <button type="button" id="gateFreeBtn" class="gate-free">FREE</button>
+              <button type="button" id="gatePremiumBtn" class="gate-premium">Premium Palace</button>
+              <button type="button" id="gateCloseBtn" class="gate-close" title="Close">×</button>
+            </div>
+          </div>
+        </div>
+        <iframe id="frame" sandbox="allow-forms allow-scripts allow-popups allow-presentation allow-same-origin" allow="fullscreen"></iframe>
+        <div id="fallbackMsg" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#111; color:#ff7a00; padding:20px; border:2px solid #ff7a00; border-radius:8px; z-index:10000; max-width:400px; text-align:center;">
+          <h3 style="margin:0 0 10px;">Content Blocked</h3>
+          <p style="margin:0 0 15px;">This site prevents embedding. <a href="#" id="openInTab" style="color:#ff7a00; text-decoration:underline; cursor:pointer;">Open in new tab</a></p>
+        </div>
+        <script>
+          (function() {
+            const frame = document.getElementById('frame');
+            const fallback = document.getElementById('fallbackMsg');
+            const openBtn = document.getElementById('openInTab');
+            let loadFailed = false;
+            
+            if (frame && fallback) {
+              setTimeout(() => {
+                if (frame.contentWindow && frame.contentWindow.document) {
+                  try {
+                    const title = frame.contentWindow.document.title || '';
+                    if (title.toLowerCase().includes('blocked') || title.toLowerCase().includes('refused') || !frame.src.includes('proxy?url=')) {
+                      showFallback();
+                    }
+                  } catch (e) {
+                    showFallback();
+                  }
+                } else {
+                  showFallback();
+                }
+              }, 3000);
+              
+              window.addEventListener('message', function(e) {
+                if (e.data && (e.data.includes('X-Frame-Options') || e.data.includes('blocked'))) {
+                  showFallback();
+                }
+              });
+            }
+            
+            function showFallback() {
+              if (loadFailed) return;
+              loadFailed = true;
+              fallback.style.display = 'block';
+              frame.style.display = 'none';
+            }
+            
+            if (openBtn) {
+              openBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const currentDisplay = document.getElementById('displayUrl')?.textContent;
+                if (currentDisplay) {
+                  window.open('https://' + currentDisplay, '_blank');
+                } else {
+                  window.open(frame?.src?.replace('/proxy?url=', '').replace('&premium=0', ''), '_blank');
+                }
+              });
+            }
+          })();
+        </script>
+      </section>
+
+      <aside class="right-ads" id="ad-slot-right">{{{ads.right}}}</aside>
+    </div>
+
+    <footer class="ad-slot ad-bottom">
+      {{{ads.bottom}}}
+      <div id="paidAds">
+        {{#each paidAds}}
+          {{#if this.paid}}
+          <a class="paid-ad" href="{{this.url}}" target="_blank" rel="noopener">
+            {{#if this.image}}<img src="{{this.image}}" alt="{{this.label}}" />{{/if}}
+            <span class="paid-ad-label">{{this.label}}</span>
+          </a>
+          {{/if}}
+        {{/each}}
+      </div>
+    </footer>
+  </div>
+
   <script>
     // Disable right-click everywhere on this page
     document.addEventListener('contextmenu', (e) => { e.preventDefault(); return false; });
