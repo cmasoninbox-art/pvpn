@@ -2089,7 +2089,7 @@ app.get('/uv/uv.config.js', (req, res) => {
     "  config: '/uv/uv.config.js',",
     "  sw: '/uv/uv.sw.js'",
     '};'
-  ].join('\\n'));
+  ].join('\n'));
 });
 
 app.get('/extension/:browser', (req, res) => {
