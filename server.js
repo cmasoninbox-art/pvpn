@@ -511,6 +511,8 @@ async function proxyHandler(req, res) {
         tag = tag.replace(/\sloading=(["'])lazy\1/i, ' loading="eager"');
         return tag;
       });
+      // Firefox can indefinitely defer lazy images inside the embedded proxy frame.
+      rewritten = rewritten.replace(/(<img\b[^>]*?)\sloading=(["'])lazy\2/gi, '$1 loading="eager"');
       // Second pass: catch escaped-slash AND url-encoded URLs (Pornhub double-encodes
       // host refs as %2F%2Fwww.pornhub.com / https%3A%2F%2F...) that sit anywhere in the
       // document. These still leak the real domain once the browser decodes them.
