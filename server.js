@@ -350,6 +350,7 @@ async function proxyHandler(req, res) {
     res.removeHeader('x-content-type-options');
     res.removeHeader('x-webkit-csp');
     res.removeHeader('x-content-security-policy');
+    res.removeHeader('content-security-policy');
     if (contentType.includes('text/html')) {
       const base = new URL(url);
       const proxyBase = '/proxy?url=' + encodeURIComponent(base.origin + '/');
@@ -825,7 +826,8 @@ const fullPageProxyHandler = async (req, res) => {
 
       // Forward upstream headers, strip XFO/CSP blocking headers
       response.headers.forEach((value, name) => {
-        if (name.toLowerCase() !== 'content-type' && name.toLowerCase() !== 'transfer-encoding') {
+        const lower = name.toLowerCase();
+        if (lower !== 'content-type' && lower !== 'transfer-encoding') {
           res.setHeader(name, value);
         }
       });
@@ -833,6 +835,7 @@ const fullPageProxyHandler = async (req, res) => {
       res.removeHeader('x-content-type-options');
       res.removeHeader('x-webkit-csp');
       res.removeHeader('x-content-security-policy');
+      res.removeHeader('content-security-policy');
 
       // ── URL rewriting (same engine as /proxy) ──────────────────
       const proxyWrap = (raw) => {
