@@ -336,7 +336,10 @@ async function proxyHandler(req, res) {
     }
 
     const contentType = response.headers.get('content-type') || 'text/html';
-    const body = await response.text();
+    // Preserve binary assets exactly; decoding images or media as UTF-8 corrupts them.
+    const body = contentType.includes('text/html')
+      ? await response.text()
+      : Buffer.from(await response.arrayBuffer());
 
     // Forward upstream headers to our response, then strip blocking headers
     // This ensures X-Frame-Options, CSP, and stale content-length are removed
