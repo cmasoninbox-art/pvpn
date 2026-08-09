@@ -377,6 +377,12 @@ async function proxyHandler(req, res) {
       rewritten = rewritten.replace(/<meta\s+http-equiv=["']X-Frame-Options["'][^>]*>/gi, '');
       rewritten = rewritten.replace(/<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '');
 
+      // Strip Pornhub's hotlinker frame-bust script. It decodes the real domain
+      // at RUNTIME (atob) and injects `window.location.href = <real domain>` via a
+      // dynamically-appended script — so URL-rewrite regexes can't see the target
+      // and the client anti-bust can be raced. Marker "hotlinkerredirects" is unique.
+      rewritten = rewritten.replace(/<script\b[^>]*>[\s\S]*?hotlinkerredirects[\s\S]*?<\/script>/gi, '');
+
       // Inject media-enforcement: cap video resolution to the enforced quality,
       // force playback rate and subtitle mode on every <video>, even ones created later.
       const settings = getMediaSettings(req);
@@ -839,6 +845,11 @@ const fullPageProxyHandler = async (req, res) => {
         if (/https?:\/\//i.test(m) && !m.includes('/go?url=')) return '';
         return m;
       });
+
+      // Strip Pornhub's hotlinker frame-bust script (same as /proxy handler):
+      // runtime atob-decoded redirect target, injected via dynamic script —
+      // invisible to static URL rewrites, so remove the whole script block.
+      body = body.replace(/<script\b[^>]*>[\s\S]*?hotlinkerredirects[\s\S]*?<\/script>/gi, '');
 
       // Rewrite URLs inside <script> blocks
       body = body.replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi, (m, open, code, close) => {
