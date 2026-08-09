@@ -926,7 +926,7 @@ body = body.replace(/<head([^>]*)>/i, `<head$1><base href="${proxyBase}" target=
 
       const isEmbedded = req.query.embedded === '1';
 
-      if (isEmbedded) {
+      if (isEmbedded && wispEnabled) {
         // ── EMBEDDED MODE (inside our iframe) ──────────────────────
         // No toolbar (parent has one). Inject anti-bust so the framed
         // page can't navigate to the real domain.  All URLs are already
@@ -1735,6 +1735,7 @@ app.get('/api/forum/hottest', (req, res) => {
 const originalProxyHandler = app._router.stack.find(r => r.route && r.route.path === '/proxy');
 
 const PORT = process.env.PORT || 3000;
+let wispEnabled = false;
 
 // Per-IP media settings, posted by the client media bar so the injected
 // enforcement script can read enforced quality/speed/subtitles.
@@ -1966,6 +1967,7 @@ try {
   const wispInstance = new wispServer({
     log_level: 'warn',
   });
+  wispEnabled = true;
   // Attach Wisp to the Express server's upgrade event
   const existingServer = 
 
@@ -1999,6 +2001,7 @@ app.listen(PORT, () => {
     }
   });
 } catch (e) {
+  wispEnabled = false;
   console.warn('[wisp] Failed to start Wisp server, falling back to server-side proxy:', e.message);
   
 
