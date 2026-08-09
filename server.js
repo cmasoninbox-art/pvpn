@@ -1069,201 +1069,119 @@ body = body.replace(/<head([^>]*)>/i, `<head$1><base href="${proxyBase}" target=
 
       const isEmbedded = req.query.embedded === '1';
 
-      if (isEmbedded && wispEnabled) {
+      if (isEmbedded) {
         // ── EMBEDDED MODE (inside our iframe) ──────────────────────
-        // No toolbar (parent has one). Inject anti-bust so the framed
-        // page can't navigate to the real domain.  All URLs are already
-        // rewritten to /go?url=… so navigation stays same-origin.
-        const antiBust = `<script src="https://cdn.jsdelivr.net/npm/libcurl.js@latest/libcurl_full.js" defer></script>
-<script>
-// Initialize libcurl.js with our Wisp server for client-side TLS fetching.
-// This lets the browser fetch resources directly, bypassing CORS and
-// eliminating the slow server-side fetch pipeline.
-window.__wispReady = false;
-window.addEventListener('load', function(){
-  if(typeof libcurl !== 'undefined' && libcurl.set_websocket){
-    var wispUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/wisp/';
-    libcurl.set_websocket(wispUrl);
-    window.__wispReady = true;
-    console.log('[wisp] Connected to', wispUrl);
-  }
-});
-</script>
-<script>(function(){
-try{
-  var _self=window.self;
-  Object.defineProperty(window,'top',{get:function(){return _self;},configurable:false});
-  Object.defineProperty(window,'parent',{get:function(){return _self;},configurable:false});
-  Object.defineProperty(window,'frameElement',{get:function(){return null;},configurable:false});
-  try{window.top=_self;}catch(e){}
-  try{window.parent=_self;}catch(e){}
-  try{window.frameElement=null;}catch(e){}
-  function blocked(v){if(!v)return false;var s=String(v);if(s.indexOf('pornhub')!==-1)return true;try{var u=new URL(s,window.location.href);return u.hostname!==window.location.hostname;}catch(_){return false;}}
-  var LP=(window.location&&Object.getPrototypeOf(window.location))||(window.Location&&window.Location.prototype);
-  if(LP){try{var _h=Object.getOwnPropertyDescriptor(LP,'href');Object.defineProperty(LP,'href',{get:function(){return _h?_h.get.call(this):'';},set:function(v){if(blocked(v))return;try{_h.set.call(this,v);}catch(e){}},configurable:true});}catch(e){}try{var _r=LP.replace;LP.replace=function(v){if(blocked(v))return;return _r.apply(this,arguments);};}catch(e){}try{var _a=LP.assign;LP.assign=function(v){if(blocked(v))return;return _a.apply(this,arguments);};}catch(e){}try{var _rl=LP.reload;LP.reload=function(){/* swallow reloads — Pornhub uses this to frame-bust */};}catch(e){}}
-  try{var _dl=document.location;Object.defineProperty(document,'location',{get:function(){return _dl;},set:function(v){if(blocked(v))return;},configurable:true});}catch(e){}
-  // Also freeze window.location direct assignment (window.location = url)
-  try{var _wlDesc=Object.getOwnPropertyDescriptor(window,'location');if(_wlDesc&&_wlDesc.set){var _wlSet=_wlDesc.set;Object.defineProperty(window,'location',{get:_wlDesc.get,set:function(v){if(blocked(v)){console.log('[anti-bust] Blocked window.location=',v);return;}try{_wlSet.call(window,v);}catch(e){}},configurable:true});}}catch(e){}
-  // Override document.domain to prevent domain manipulation
-  try{Object.defineProperty(document,'domain',{get:function(){return window.location.hostname;},set:function(v){/* block domain manipulation */},configurable:false});}catch(e){}
-  try{var _open=window.open.bind(window);window.open=function(u,t,f){if(t==='_parent'||t==='_top'||(t==='_blank'&&blocked(u)))t='_self';if(blocked(u))return null;return _open(u,t,f);};}catch(e){}
-  var _push=history.pushState,_rpl=history.replaceState;function scrub(u){if(u&&String(u).indexOf('pornhub')!==-1)return;return u;}try{history.pushState=function(a,t,u){return _push.call(history,a,t,scrub(u));};}catch(e){}try{history.replaceState=function(a,t,u){return _rpl.call(history,a,t,scrub(u));};}catch(e){}
-  var mo=new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n&&n.tagName==='META'&&n.httpEquiv&&/refresh/i.test(n.httpEquiv)){if(n.content&&/https?:\\/\\//i.test(n.content)&&!/\\/go\\?url=/.test(n.content)){n.remove();}}});});});try{mo.observe(document.documentElement,{childList:true,subtree:true});}catch(e){}
-  // Block CSP and X-Frame-Options meta tags (Pornhub injects them to frame-bust)
-  var cspObserver = new MutationObserver(function(muts){
-    muts.forEach(function(m){
-      m.addedNodes.forEach(function(n){
-        if(n && n.tagName === 'META' && n.httpEquiv){
-          var hv = n.httpEquiv.toLowerCase();
-          if(hv === 'content-security-policy' || hv === 'x-frame-options' || hv === 'x-content-security-policy' || hv === 'x-webkit-csp'){
-            n.remove();
+        // Keep all dynamic navigation and media on /go even when the
+        // optional Wisp component is unavailable on Render.
+        const antiBust = `<script>
+(function(){
+  try {
+    var pageSource = '';
+    try { pageSource = new URL(window.location.href).searchParams.get('url') || ''; } catch (_) {}
+    function wrapUrl(raw){
+      try {
+        if(raw === null || raw === undefined) return raw;
+        var text = String(raw);
+        if(!text || text.indexOf('/go?url=') !== -1 || text.indexOf('data:') === 0 || text.indexOf('blob:') === 0 || text.indexOf('javascript:') === 0) return raw;
+        var absolute;
+        if(text.indexOf('//') === 0) absolute = new URL('https:' + text);
+        else absolute = new URL(text, pageSource || window.location.href);
+        if(absolute.protocol !== 'http:' && absolute.protocol !== 'https:') return raw;
+        if(absolute.hostname === window.location.hostname) return raw;
+        return '/go?url=' + encodeURIComponent(absolute.href) + '&embedded=1';
+      } catch (_) { return raw; }
+    }
+    function isMedia(node){
+      var tag = node && node.tagName;
+      return tag === 'VIDEO' || tag === 'AUDIO' || tag === 'SOURCE' || tag === 'TRACK';
+    }
+    var nativeSetAttribute = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function(name, value){
+      if(String(name).toLowerCase() === 'src' && isMedia(this)) value = wrapUrl(value);
+      return nativeSetAttribute.call(this, name, value);
+    };
+    function wrapSrcSetter(ctor){
+      try {
+        if(!ctor || !ctor.prototype) return;
+        var desc = Object.getOwnPropertyDescriptor(ctor.prototype, 'src');
+        if(!desc || !desc.get || !desc.set || !desc.configurable) return;
+        Object.defineProperty(ctor.prototype, 'src', {
+          configurable: true,
+          enumerable: desc.enumerable,
+          get: desc.get,
+          set: function(value){ return desc.set.call(this, wrapUrl(value)); }
+        });
+      } catch (_) {}
+    }
+    wrapSrcSetter(window.HTMLMediaElement);
+    wrapSrcSetter(window.HTMLSourceElement);
+    wrapSrcSetter(window.HTMLTrackElement);
+    function rewriteOne(node){
+      if(!isMedia(node)) return;
+      try {
+        var raw = node.getAttribute('src');
+        if(!raw) return;
+        var wrapped = wrapUrl(raw);
+        if(wrapped && wrapped !== raw) nativeSetAttribute.call(node, 'src', wrapped);
+      } catch (_) {}
+    }
+    function rewriteTree(root){
+      if(!root || root.nodeType !== 1) return;
+      rewriteOne(root);
+      if(root.querySelectorAll){
+        var nodes = root.querySelectorAll('video[src],audio[src],source[src],track[src]');
+        for(var i = 0; i < nodes.length; i++) rewriteOne(nodes[i]);
+      }
+    }
+    var observer = new MutationObserver(function(changes){
+      for(var i = 0; i < changes.length; i++){
+        var change = changes[i];
+        if(change.type === 'attributes'){
+          rewriteOne(change.target);
+        } else {
+          for(var j = 0; j < change.addedNodes.length; j++) rewriteTree(change.addedNodes[j]);
+        }
+      }
+    });
+    try { observer.observe(document.documentElement, { childList:true, subtree:true, attributes:true, attributeFilter:['src'] }); } catch (_) {}
+
+    if(window.fetch){
+      var nativeFetch = window.fetch;
+      window.fetch = function(input, options){
+        try {
+          if(typeof input === 'string') input = wrapUrl(input);
+          else if(input && input.url){
+            var wrappedRequestUrl = wrapUrl(input.url);
+            if(wrappedRequestUrl !== input.url) input = new Request(wrappedRequestUrl, input);
           }
-        }
-      });
-    });
-  });
-  try { cspObserver.observe(document.documentElement, {childList:true, subtree:true}); } catch(e){}
-
-  // Also remove any existing CSP/XFO meta tags added by page
-  document.querySelectorAll('meta[http-equiv="Content-Security-Policy"], meta[http-equiv="X-Frame-Options"], meta[http-equiv="X-Content-Security-Policy"], meta[http-equiv="X-WebKit-CSP"]').forEach(function(m){ m.remove(); });
-
-  document.querySelectorAll('meta[http-equiv="refresh"]').forEach(function(m){if(m.content&&/https?:\\/\\//i.test(m.content)&&!/\\/go\\?url=/.test(m.content)){m.remove();}});
-
-  // ── Intercept ALL dynamic navigation paths ──────────────────────
-  // 1. Click handler: catch clicks on <a> elements with raw URLs
-  document.addEventListener('click', function(e){
-    var el = e.target;
-    while(el && el.tagName !== 'A') el = el.parentElement;
-    if(el && el.href){
-      var h = el.href;
-      if(h && h.indexOf('/go?url=') === -1 && h.indexOf('javascript:') === -1 && h.indexOf('#') !== 0){
-        try { var u = new URL(h, window.location.href); if(u.hostname !== window.location.hostname){ e.preventDefault(); e.stopPropagation(); window.location.href = '/go?url=' + encodeURIComponent(u.href) + '&embedded=1'; return false; } } catch(_){}
-      }
+        } catch (_) {}
+        return nativeFetch.call(this, input, options);
+      };
     }
-  }, true);
-
-  // 2. Override document.write to rewrite URLs in written content
-  var _write = document.write.bind(document);
-  document.write = function(html){
-    if(typeof html === 'string'){
-      html = html.replace(/(href|src|action)=("[^"]*"|'[^']*')/gi, function(m, attr, quoted){
-        var q = quoted.charAt(0);
-        var url = quoted.slice(1, -1);
-        if(/^https?:\/\//i.test(url)){ try{ var u = new URL(url); if(u.hostname !== window.location.hostname) return attr + '=' + q + '/go?url=' + encodeURIComponent(u.href) + q; }catch(_){} }
-        return m;
-      });
-      // Strip meta refresh
-      html = html.replace(/<meta[^>]+http-equiv\s*=\s*["']?refresh["']?[^>]*>/gi, function(m){ if(/https?:\/\//i.test(m) && !/\/go\?url=/.test(m)) return ''; return m; });
+    if(window.XMLHttpRequest){
+      var nativeOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function(){
+        var args = Array.prototype.slice.call(arguments);
+        if(args.length > 1) args[1] = wrapUrl(args[1]);
+        return nativeOpen.apply(this, args);
+      };
     }
-    return _write(html);
-  };
-  var _writeln = document.writeln.bind(document);
-  document.writeln = function(html){ if(typeof html === 'string'){ return document.write(html + String.fromCharCode(10)); } return _writeln(html); };
 
-  // 3. MutationObserver: rewrite href on dynamically added <a> elements
-  var linkObserver = new MutationObserver(function(ms){
-    ms.forEach(function(m){
-      m.addedNodes.forEach(function(n){
-        if(!n || n.nodeType !== 1) return;
-        // Rewrite <a> hrefs
-        if(n.tagName === 'A' && n.href){
-          try{ var u = new URL(n.href, window.location.href); if(u.hostname !== window.location.hostname && n.href.indexOf('/go?url=') === -1){ n.href = '/go?url=' + encodeURIComponent(u.href); } }catch(_){}
-        }
-        // Rewrite child <a> elements
-        n.querySelectorAll && n.querySelectorAll('a[href]').forEach(function(a){
-          try{ var u2 = new URL(a.href, window.location.href); if(u2.hostname !== window.location.hostname && a.href.indexOf('/go?url=') === -1){ a.href = '/go?url=' + encodeURIComponent(u2.href); } }catch(_){}
-        });
-        // Rewrite <img> srcs
-        if(n.tagName === 'IMG' && n.src){
-          try{ var u3 = new URL(n.src, window.location.href); if(u3.hostname !== window.location.hostname && n.src.indexOf('/go?url=') === -1){ n.src = '/go?url=' + encodeURIComponent(u3.href); } }catch(_){}
-        }
-        n.querySelectorAll && n.querySelectorAll('img[src]').forEach(function(img){
-          try{ var u4 = new URL(img.src, window.location.href); if(u4.hostname !== window.location.hostname && img.src.indexOf('/go?url=') === -1){ img.src = '/go?url=' + encodeURIComponent(u4.href); } }catch(_){}
-        });
-        // Rewrite <iframe> srcs — THIS is the "refused to connect" fix
-        if(n.tagName === 'IFRAME' && n.src){
-          try{ var uif = new URL(n.src, window.location.href); if(uif.hostname !== window.location.hostname && n.src.indexOf('/go?url=') === -1){ n.src = '/go?url=' + encodeURIComponent(uif.href); } }catch(_){}
-        }
-        n.querySelectorAll && n.querySelectorAll('iframe[src]').forEach(function(ifr){
-          try{ var uif2 = new URL(ifr.src, window.location.href); if(uif2.hostname !== window.location.hostname && ifr.src.indexOf('/go?url=') === -1){ ifr.src = '/go?url=' + encodeURIComponent(uif2.href); } }catch(_){}
-        });
-        // Rewrite <script> srcs
-        if(n.tagName === 'SCRIPT' && n.src){
-          try{ var us = new URL(n.src, window.location.href); if(us.hostname !== window.location.hostname && n.src.indexOf('/go?url=') === -1){ n.src = '/go?url=' + encodeURIComponent(us.href); } }catch(_){}
-        }
-        n.querySelectorAll && n.querySelectorAll('script[src]').forEach(function(sc){
-          try{ var us2 = new URL(sc.src, window.location.href); if(us2.hostname !== window.location.hostname && sc.src.indexOf('/go?url=') === -1){ sc.src = '/go?url=' + encodeURIComponent(us2.href); } }catch(_){}
-        });
-        // Rewrite <link> hrefs
-        if(n.tagName === 'LINK' && n.href){
-          try{ var ul = new URL(n.href, window.location.href); if(ul.hostname !== window.location.hostname && n.href.indexOf('/go?url=') === -1){ n.href = '/go?url=' + encodeURIComponent(ul.href); } }catch(_){}
-        }
-        n.querySelectorAll && n.querySelectorAll('link[href]').forEach(function(lk){
-          try{ var ul2 = new URL(lk.href, window.location.href); if(ul2.hostname !== window.location.hostname && lk.href.indexOf('/go?url=') === -1){ lk.href = '/go?url=' + encodeURIComponent(ul2.href); } }catch(_){}
-        });
-        // Rewrite <form> actions
-        if(n.tagName === 'FORM' && n.action){
-          try{ var u5 = new URL(n.action, window.location.href); if(u5.hostname !== window.location.hostname && n.action.indexOf('/go?url=') === -1){ n.action = '/go?url=' + encodeURIComponent(u5.href); } }catch(_){}
-        }
-        n.querySelectorAll && n.querySelectorAll('form[action]').forEach(function(f){
-          try{ var u6 = new URL(f.action, window.location.href); if(u6.hostname !== window.location.hostname && f.action.indexOf('/go?url=') === -1){ f.action = '/go?url=' + encodeURIComponent(u6.href); } }catch(_){}
-        });
-        // Rewrite <video>/<source>/<audio> srcs
-        n.querySelectorAll && n.querySelectorAll('video[src], source[src], audio[src]').forEach(function(v){
-          try{ var uv = new URL(v.src, window.location.href); if(uv.hostname !== window.location.hostname && v.src.indexOf('/go?url=') === -1){ v.src = '/go?url=' + encodeURIComponent(uv.href); } }catch(_){}
-        });
-        // Kill meta refresh tags
-        if(n.tagName === 'META' && n.httpEquiv && /refresh/i.test(n.httpEquiv)){
-          if(n.content && /https?:\/\//i.test(n.content) && !/\/go\?url=/.test(n.content)){ n.remove(); }
-        }
-      });
-    });
-  });
-  try{ linkObserver.observe(document.documentElement, {childList:true, subtree:true}); }catch(e){}
-
-  // 4. Override fetch() and XMLHttpRequest to rewrite URLs
-  if(window.fetch){
-    var _fetch = window.fetch;
-    window.fetch = function(input, opts){
-      if(typeof input === 'string'){
-        try{ var u = new URL(input, window.location.href); if(u.hostname !== window.location.hostname && input.indexOf('/go?url=') === -1){ input = '/go?url=' + encodeURIComponent(u.href); } }catch(_){}
-      } else if(input && input.url){
-        try{ var u2 = new URL(input.url, window.location.href); if(u2.hostname !== window.location.hostname && input.url.indexOf('/go?url=') === -1){ var nw = new Request('/go?url=' + encodeURIComponent(u2.href), input); input = nw; } }catch(_){}
+    document.addEventListener('click', function(event){
+      var node = event.target;
+      while(node && node.tagName !== 'A') node = node.parentElement;
+      if(!node || !node.href) return;
+      var wrapped = wrapUrl(node.href);
+      if(wrapped !== node.href){
+        event.preventDefault();
+        event.stopPropagation();
+        window.location.href = wrapped;
       }
-      return _fetch(input, opts);
-    };
-  }
-  if(window.XMLHttpRequest){
-    var _xhro = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function(method, url){
-      try{ var u = new URL(url, window.location.href); if(u.hostname !== window.location.hostname && url.indexOf('/go?url=') === -1){ url = '/go?url=' + encodeURIComponent(u.href); } }catch(_){}
-      return _xhro.apply(this, arguments);
-    };
-  }
-
-  // 5. Override innerHTML to rewrite URLs in dynamically set HTML
-  var _ihDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
-  if(_ihDesc && _ihDesc.set){
-    var _ihSet = _ihDesc.set;
-    Object.defineProperty(Element.prototype, 'innerHTML', {
-      get: _ihDesc.get,
-      set: function(val){
-        if(typeof val === 'string'){
-          val = val.replace(/(href|src|action)=("[^"]*"|'[^']*')/gi, function(m, attr, quoted){
-            var q = quoted.charAt(0);
-            var url = quoted.slice(1, -1);
-            if(/^https?:\/\//i.test(url)){ try{ var u = new URL(url); if(u.hostname !== window.location.hostname) return attr + '=' + q + '/go?url=' + encodeURIComponent(u.href) + q; }catch(_){} }
-            return m;
-          });
-        }
-        return _ihSet.call(this, val);
-      },
-      configurable: true
-    });
-  }
-
-  document.addEventListener('contextmenu',function(e){e.preventDefault();return false;});
-}catch(e){}\n})();</script>`;
+    }, true);
+    rewriteTree(document.documentElement);
+  } catch (_) {}
+})();
+</script>`;
         body = body.replace(/<head([^>]*)>/i, `<head$1>${antiBust}`);
       } else {
         // ── STANDALONE MODE (full page) ────────────────────────────
