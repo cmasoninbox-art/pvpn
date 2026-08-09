@@ -359,6 +359,8 @@ async function proxyHandler(req, res) {
     res.removeHeader('x-webkit-csp');
     res.removeHeader('x-content-security-policy');
     res.removeHeader('content-security-policy');
+    res.removeHeader('content-length');
+    res.removeHeader('content-encoding');
     if (contentType.includes('text/html')) {
       const base = new URL(url);
       const proxyBase = '/proxy?url=' + encodeURIComponent(base.origin + '/');
@@ -894,8 +896,8 @@ const fullPageProxyHandler = async (req, res) => {
       res.removeHeader('x-webkit-csp');
       res.removeHeader('x-content-security-policy');
       res.removeHeader('content-security-policy');
-
-      // ── URL rewriting (same engine as /proxy) ──────────────────
+      res.removeHeader('content-length');
+      res.removeHeader('content-encoding');
       const proxyWrap = (raw) => {
         let u;
         try { u = new URL(raw); }
