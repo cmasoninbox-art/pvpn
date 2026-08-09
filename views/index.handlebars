@@ -639,8 +639,7 @@
     }
     function showBrowserGate() {
       const premium = localStorage.getItem('premium') === '1';
-      const free = localStorage.getItem('freeAccess') === '1';
-      if (browserGate) browserGate.classList.toggle('hidden', premium || free);
+      if (browserGate) browserGate.classList.toggle('hidden', premium);
     }
 
     if (gateFreeBtn) {
@@ -1265,6 +1264,7 @@
       const choice = getChoice();
       if (choice === 'yes') {
         unlock();
+        showBrowserGate();
       } else if (choice === 'no') {
         showMessage('No Entry', 'Grow up, come back later bud!');
         if (layout) layout.style.display = 'none';
@@ -1323,7 +1323,7 @@
   <div style="background:#111;color:#ff7a00;padding:30px;border-radius:10px;max-width:420px;margin:20px;border:2px solid #ff7a00;position:relative;">
     <button onclick="closeExtPrompt()" aria-label="Close" title="Close" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#888;font-size:22px;cursor:pointer;line-height:1;padding:4px 6px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">×</button>
     <h3 style="margin:0 0 15px 0;">Need Full Video Access?</h3>
-    <p style="margin:0 0 15px 0;line-height:1.4;color:#ccc;">Pornhub blocks embedding. Install our extension for inline playback:</p>
+    <p style="margin:0 0 15px 0;line-height:1.4;color:#ccc;">Pornhub blocks embedding. Install our extension for inline playback:</p>\n    <p id="extCheckStatus" style="margin:0 0 15px;color:#ff9000;font-weight:700;">PVPN extension not detected</p>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
       <button onclick="dlExt('chrome')" style="background:#ff7a00;color:#000;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Chrome</button>
       <button onclick="dlExt('edge')" style="background:#000;color:#fff;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Edge</button>
@@ -1333,11 +1333,91 @@
     <p style="margin:15px 0 0 0;font-size:12px;color:#888;">1. Click download 2. Enable Developer Mode 3. Load unpacked (Universal installs all browsers automatically)</p>
   </div>
 </div>
-<script>function dlExt(b){var m={'chrome':'/vpn-browser-extension.zip','edge':'/vpn-browser-extension.zip','firefox':'/vpn-browser-extension.xpi','universal':'/PVPN-Browser-Extension-Setup.exe'};window.open(m[b],'_blank');}
-var _extDismissed=false;
-function closeExtPrompt(){_extDismissed=true;var p=document.getElementById('extPrompt');if(p)p.style.display='none';}
-document.getElementById('extPrompt').addEventListener('click',function(e){if(e.target===this)closeExtPrompt();});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeExtPrompt();});
-// Extension installation is user-initiated; do not cover a successfully loaded proxy page.</script>
+<script>
+(function () {
+  var downloads = {
+    chrome: '/extension/chrome',
+    edge: '/extension/edge',
+    firefox: '/extension/firefox',
+    universal: '/PVPN-Browser-Extension-Setup.exe'
+  };
+  var prompt = document.getElementById('extPrompt');
+  var dismissed = false;
+  try { dismissed = sessionStorage.getItem('pvpnExtPromptDismissed') === '1'; } catch (_) {}
+
+  function extensionInstalled() {
+    return !!(document.documentElement &&
+      document.documentElement.getAttribute('data-pvpn-extension') === 'ready');
+  }
+
+  function hidePrompt() {
+    if (prompt) prompt.style.display = 'none';
+  }
+
+  window.closeExtPrompt = function () {
+    dismissed = true;
+    try { sessionStorage.setItem('pvpnExtPromptDismissed', '1'); } catch (_) {}
+    hidePrompt();
+  };
+
+  window.dlExt = function (browserName) {
+    var target = downloads[browserName];
+    if (!target) return;
+    window.closeExtPrompt();
+    window.open(target, '_blank');
+  };
+
+  function ageGateIsClear() {
+    var ageGate = document.getElementById('ageGate');
+    return !ageGate || ageGate.style.display === 'none';
+  }
+
+  function refreshExtensionPrompt() {
+    if (extensionInstalled()) {
+      document.documentElement.setAttribute('data-pvpn-extension-detected', '1');
+      hidePrompt();
+      return;
+    }
+    if (!dismissed && ageGateIsClear() && prompt) {
+      prompt.style.display = 'flex';
+    }
+  }
+
+  if (prompt) {
+    prompt.addEventListener('click', function (event) {
+      if (event.target === prompt) window.closeExtPrompt();
+    });
+  }
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') window.closeExtPrompt();
+  });
+  window.addEventListener('pvpn-extension-ready', refreshExtensionPrompt);
+
+  if (document.documentElement) {
+    new MutationObserver(refreshExtensionPrompt).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-pvpn-extension']
+    });
+  }
+  var ageGate = document.getElementById('ageGate');
+  if (ageGate) {
+    new MutationObserver(refreshExtensionPrompt).observe(ageGate, {
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    });
+  }
+
+  function beginCheck() {
+    refreshExtensionPrompt();
+    setTimeout(refreshExtensionPrompt, 400);
+    setTimeout(refreshExtensionPrompt, 1200);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', beginCheck, { once: true });
+  } else {
+    beginCheck();
+  }
+})();
+</script>
 </body>
 </html>
