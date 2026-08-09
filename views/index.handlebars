@@ -466,7 +466,7 @@
                 if (frame.contentWindow && frame.contentWindow.document) {
                   try {
                     const title = frame.contentWindow.document.title || '';
-                    if (title.toLowerCase().includes('blocked') || title.toLowerCase().includes('refused') || !frame.src.includes('proxy?url=')) {
+                    if (title.toLowerCase().includes('blocked') || title.toLowerCase().includes('refused') || !(frame.src.includes('/service/') || frame.src.includes('/proxy?url=') || frame.src.includes('/go?url='))) {
                       showFallback();
                     }
                   } catch (e) {
@@ -529,6 +529,7 @@
   <script src="/uv/uv.config.js"></script>
   <script>
     // Start the durable service-worker proxy once for the whole browsing session.
+    document.documentElement.dataset.proxyEngine = 'starting';
     window.pvpnProxyReady = (async function () {
       if (!('serviceWorker' in navigator)) throw new Error('Service workers are not supported');
       await navigator.serviceWorker.register(__uv$config.sw, { scope: __uv$config.prefix });
@@ -538,8 +539,10 @@
       await connection.setTransport('/epoxy/index.mjs', [{
         wisp: protocol + '//' + location.host + '/wisp/'
       }]);
+      document.documentElement.dataset.proxyEngine = 'ready';
       return true;
     })().catch(function (err) {
+      document.documentElement.dataset.proxyEngine = 'error:' + (err && err.message ? err.message : String(err));
       console.error('[proxy] Service-worker engine failed:', err);
       return false;
     });
@@ -709,7 +712,7 @@
         frameEl.dataset.loading = '0';
         try {
           const loc = frameEl.contentWindow.location.href;
-          if (loc && (loc.indexOf('/proxy') > -1 || loc.indexOf('/go') > -1)) frameEl.dataset.proxyUrl = loc;
+          if (loc && (loc.indexOf('/proxy') > -1 || loc.indexOf('/go') > -1 || loc.indexOf('/service/') > -1)) frameEl.dataset.proxyUrl = loc;
         } catch (_) { /* cross-origin — watchdog handles */ }
       });
     }
@@ -938,7 +941,7 @@
       const display = document.getElementById('displayUrl');
       let src = iframe.src;
       if (!src || src === 'about:blank' || src === window.location.href) {
-        const fallback = display.textContent && display.textContent !== 'No page loaded' ? display.textContent : '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') + '&country=us&premium=0';
+        const fallback = display.textContent && display.textContent !== 'No page loaded' ? buildProxyUrl(display.textContent) : buildProxyUrl('https://www.pornhub.com');
         src = fallback.startsWith('http') ? fallback : window.location.origin + fallback;
       }
       window.open(src, '_blank');
