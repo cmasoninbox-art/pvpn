@@ -496,7 +496,6 @@ async function proxyHandler(req, res) {
         if(options[q].classList.contains('mgp_selected-row')) selected = options[q];
         if(/\b480p?\b/i.test(options[q].textContent || '')) target = options[q];
       }
-      if(target && selected !== target) target.click();
     } catch(e){}
   }
   function applyAll(){ var vs=document.querySelectorAll('video'); for(var i=0;i<vs.length;i++){ applyVideo(vs[i]); } enforceSiteQuality(); }
@@ -518,7 +517,6 @@ async function proxyHandler(req, res) {
   var obs = new MutationObserver(function(muts){ muts.forEach(function(m){ m.addedNodes.forEach(function(n){ if(n&&n.tagName==='VIDEO') applyVideo(n); }); }); });
   try { obs.observe(document.documentElement, {childList:true, subtree:true}); } catch(e){}
   applyAll();
-  if(FREE_TIER) setInterval(enforceSiteQuality, 1500);
 })();
 </script>
 `;
@@ -587,6 +585,32 @@ async function proxyHandler(req, res) {
       rewritten = rewritten.replace(/\/\*__PVPN_SCRIPT_BODY_(\d+)__\*\//g, (m, index) => {
         return protectedScriptBodies[Number(index)] || '';
       });
+      // Free accounts receive only 480p-or-lower streams. This runs after
+      // restoring the site's inline player configuration and before it executes.
+      if (!premiumAccess) {
+        rewritten = rewritten.replace(/var\s+(flashvars_\d+)\s*=\s*(\{[^\r\n]*\});/g, (match, name, json) => {
+          try {
+            const config = JSON.parse(json);
+            if (!Array.isArray(config.mediaDefinitions)) return match;
+            const allowed = config.mediaDefinitions.filter((definition) => {
+              const height = Number(definition && (definition.height || definition.quality));
+              return Number.isFinite(height) && height > 0 && height <= 480;
+            });
+            if (!allowed.length) return match;
+            const preferred = allowed.find((definition) =>
+              Number(definition && (definition.height || definition.quality)) === 480
+            ) || allowed[allowed.length - 1];
+            allowed.forEach((definition) => { definition.defaultQuality = definition === preferred; });
+            config.mediaDefinitions = allowed;
+            config.defaultQuality = [480, 240].filter((height) =>
+              allowed.some((definition) => Number(definition && (definition.height || definition.quality)) === height)
+            );
+            return 'var ' + name + ' = ' + JSON.stringify(config) + ';';
+          } catch (_) {
+            return match;
+          }
+        });
+      }
       // CSP: everything flows through our origin so framed sites can't load the real domain
       // (which would serve X-Frame-Options: DENY and break framing). Sandbox already allows
       // scripts/forms/same-origin/popups.
