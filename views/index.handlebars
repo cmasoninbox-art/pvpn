@@ -986,6 +986,214 @@
         color: #082d43 !important;
       }
     }
+
+    /* Pornhub-led mobile design with modern reference-site spacing */
+    @media (max-width: 760px) {
+      html, body {
+        background: #0b0b0b !important;
+        color: #f5f5f5 !important;
+      }
+      body {
+        background:
+          radial-gradient(circle at 82% -8%, rgba(255, 145, 0, 0.14), transparent 28%),
+          #0b0b0b !important;
+      }
+      .layout { background: transparent; }
+      .toolbar {
+        background: rgba(18, 18, 18, 0.98) !important;
+        border-color: #2b2b2b !important;
+        box-shadow: 0 16px 42px rgba(0, 0, 0, 0.48) !important;
+      }
+      .brand { color: #fff !important; }
+      .brand-label {
+        display: inline-flex;
+        align-items: center;
+        font-weight: 950;
+        letter-spacing: -0.7px;
+        white-space: nowrap;
+      }
+      .brand-main {
+        color: #fff;
+        font-size: 19px;
+      }
+      .brand-accent {
+        margin-left: 3px;
+        padding: 2px 5px 3px;
+        border-radius: 4px;
+        background: #ff9000;
+        color: #050505;
+        font-size: 18px;
+        line-height: 1;
+      }
+      #menuBtn {
+        border-color: #383838 !important;
+        background: #242424 !important;
+        color: #fff !important;
+      }
+      .connection {
+        border-color: #24563d;
+        background: #102b20;
+        color: #78d9a4;
+      }
+      .vpn-note { color: #a3a3a3; }
+      .nav {
+        border-color: #303030;
+        background: #171717;
+        box-shadow: 0 9px 26px rgba(0, 0, 0, 0.32);
+      }
+      .nav select, .nav input, .nav button {
+        border-color: #3a3a3a !important;
+        background: #252525 !important;
+        color: #f7f7f7 !important;
+      }
+      .nav input::placeholder { color: #969696; }
+      .nav button[type="submit"] {
+        border: 0 !important;
+        background: linear-gradient(135deg, #ffa31a, #ff7a00) !important;
+        color: #050505 !important;
+        box-shadow: 0 8px 21px rgba(255, 128, 0, 0.26);
+      }
+      #premiumPartyBtn {
+        border-color: rgba(255, 255, 255, 0.1) !important;
+        background: linear-gradient(135deg, #ec3131, #bb1323) !important;
+        color: #fff !important;
+      }
+      .menu-dropdown {
+        border-color: #333;
+        background: rgba(20, 20, 20, 0.99);
+        box-shadow: 0 25px 64px rgba(0, 0, 0, 0.72);
+      }
+      .menu-item { color: #e7e7e7 !important; }
+      .menu-item.heading { color: #ff9000 !important; }
+      .browser {
+        border-color: #2d2d2d;
+        background: #111;
+        box-shadow: 0 24px 58px rgba(0, 0, 0, 0.54);
+      }
+      .browser-bar {
+        border-bottom-color: #333;
+        background: linear-gradient(180deg, #242424, #191919);
+      }
+      #displayUrl {
+        border-color: #343434;
+        background: #101010;
+        color: #cfcfcf;
+      }
+      #refreshBtn, #openTabBtn {
+        border-color: #3a3a3a !important;
+        background: #292929 !important;
+        color: #ff9c20 !important;
+      }
+      .media-bar {
+        border-bottom-color: #303030;
+        background: #171717;
+      }
+      .media-field {
+        border-color: #343434;
+        background: #222;
+        color: #aaa;
+      }
+      .media-field select {
+        background: #111;
+        color: #fff;
+        box-shadow: 0 0 0 1px #363636 inset;
+      }
+      .media-lock { color: #ff9415; }
+      #frame, iframe#frame, iframe[name="frame"] {
+        background: #000;
+        border-top-color: #292929 !important;
+      }
+      #ageGate, #premiumGate, #loginMenu, #extPrompt {
+        background:
+          radial-gradient(circle at 50% 12%, rgba(255, 144, 0, 0.13), transparent 30%),
+          rgba(0, 0, 0, 0.96) !important;
+      }
+      #ageGate .box, #premiumGate .box, #loginMenu .box, #extPrompt > div {
+        background: linear-gradient(160deg, #202020, #111) !important;
+        border-color: #3a3a3a !important;
+        box-shadow: 0 28px 82px rgba(0, 0, 0, 0.75) !important;
+      }
+      #ageGate h2, #premiumGate h2, #loginMenu h2, #extPrompt h3 {
+        color: #fff !important;
+      }
+      #ageGate p, #premiumGate p, #extPrompt p {
+        color: #b7b7b7 !important;
+      }
+      #ageGate button:not(.no), #premiumGate button,
+      #loginMenu button[type="submit"] {
+        background: linear-gradient(135deg, #ffa31a, #ff7a00) !important;
+        color: #050505 !important;
+        box-shadow: 0 9px 25px rgba(255, 128, 0, 0.24);
+      }
+      #ageGate button.no {
+        border-color: #3b3b3b !important;
+        background: #242424 !important;
+        color: #d2d2d2 !important;
+      }
+      #loginMenu input {
+        border-color: #3a3a3a !important;
+        background: #0d0d0d !important;
+        color: #fff !important;
+      }
+      #loginMenu button:not([type="submit"]) { color: #ff9415 !important; }
+      #browserGate {
+        background: rgba(0, 0, 0, 0.76);
+      }
+      .gate-inner {
+        border-color: #3a3a3a;
+        background: linear-gradient(160deg, #222, #111);
+        box-shadow: 0 28px 74px rgba(0, 0, 0, 0.72);
+      }
+      .gate-title { color: #fff; }
+      .gate-sub { color: #ff9a1c; }
+      .gate-free {
+        border: 0;
+        background: linear-gradient(135deg, #ffa31a, #ff7a00);
+        color: #050505;
+      }
+      .gate-premium {
+        border-color: #444;
+        background: #292929;
+        color: #fff;
+      }
+      #fallbackMsg {
+        border-color: #3a3a3a !important;
+        background: #181818 !important;
+        color: #d8d8d8 !important;
+      }
+      #fallbackMsg h3 { color: #fff; }
+      #extPrompt > div::before {
+        border-color: #3a3a3a;
+        background: #242424;
+        color: #ff9a1c;
+      }
+      #extPrompt button[onclick*="chrome"],
+      #extPrompt button[onclick*="firefox"] {
+        background: linear-gradient(135deg, #ffa31a, #ff7a00) !important;
+        color: #050505 !important;
+      }
+    }
+    @media (max-width: 430px) {
+      .layout { padding: 0 0 max(6px, env(safe-area-inset-bottom)); }
+      .toolbar {
+        top: 0;
+        border-width: 0 0 1px;
+        border-radius: 0;
+      }
+      .main { margin-top: 0; }
+      .browser {
+        border-width: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      #frame, iframe#frame, iframe[name="frame"] {
+        border-radius: 0;
+      }
+      .browser-bar, .media-bar { padding-left: 8px; padding-right: 8px; }
+      #ageGate .box, #premiumGate .box, #loginMenu .box, #extPrompt > div {
+        border-radius: 14px !important;
+      }
+    }
   </style>
 </head>
 <body class="theme-{{theme}}">
@@ -1045,7 +1253,7 @@
     <header class="toolbar">
       <div class="brand">
         <button type="button" id="menuBtn" title="Menu">☰</button>
-        VPN Browser
+        <span class="brand-label"><span class="brand-main">PVPN </span><span class="brand-accent">Browser</span></span>
         <div class="menu-dropdown" id="menuDropdown">
         <button class="menu-item heading">Account</button>
         <button class="menu-item" data-action="login">Login</button>
