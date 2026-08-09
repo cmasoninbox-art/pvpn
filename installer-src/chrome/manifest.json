@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Pornhub Local Iframe (Development Only)",
+  "version": "1.0.0",
+  "description": "Locally removes framing-related response headers from www.pornhub.com for iframe development testing.",
+  "permissions": [
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "https://www.pornhub.com/*"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "pornhub_iframe_headers",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  }
+}
