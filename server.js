@@ -339,7 +339,7 @@ async function proxyHandler(req, res) {
     const body = await response.text();
 
     // Forward upstream headers to our response, then strip blocking headers
-    // This ensures X-Frame-Options/CSP from upstream are properly removed
+    // This ensures X-Frame-Options, CSP, and stale content-length are removed
     response.headers.forEach((value, name) => {
       const lower = name.toLowerCase();
       if (lower !== 'content-type' && lower !== 'transfer-encoding'
@@ -347,7 +347,9 @@ async function proxyHandler(req, res) {
           && lower !== 'x-content-security-policy'
           && lower !== 'x-webkit-csp'
           && lower !== 'x-frame-options'
-          && lower !== 'x-content-type-options') {
+          && lower !== 'x-content-type-options'
+          && lower !== 'content-length'
+          && lower !== 'content-encoding') {
         res.setHeader(name, value);
       }
     });
@@ -840,7 +842,7 @@ const fullPageProxyHandler = async (req, res) => {
       // "enable javascript", reCAPTCHA, turnstile) AND we used a custom/Tor
       // agent, retry once with direct egress (no proxy) since sites like
       // Pornhub flag known Tor/proxy exit IPs.
-      const looksLikeChallenge = /enable\s*javascript|recaptcha|turnstile|captcha|bot.*detect|security.*check|just.*checking/i.test(body);
+      const looksLikeChallenge = body.length < 50000 && /enable\s*javascript|recaptcha\.|turnstile.*render|just\s*checking|security\s*check|bot.*detected|access.*denied/i.test(body);
       if (looksLikeChallenge && agent && !req.query._retried) {
         try {
           const retryController = new AbortController();
@@ -875,12 +877,15 @@ const fullPageProxyHandler = async (req, res) => {
       response.headers.forEach((value, name) => {
         const lower = name.toLowerCase();
         // Skip content-type, transfer-encoding, and ALL CSP/XFO variants
+        // Also skip content-length — it will be wrong after URL rewriting changes body size
         if (lower !== 'content-type' && lower !== 'transfer-encoding'
             && lower !== 'content-security-policy'
             && lower !== 'x-content-security-policy'
             && lower !== 'x-webkit-csp'
             && lower !== 'x-frame-options'
-            && lower !== 'x-content-type-options') {
+            && lower !== 'x-content-type-options'
+            && lower !== 'content-length'
+            && lower !== 'content-encoding') {
           res.setHeader(name, value);
         }
       });
