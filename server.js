@@ -318,6 +318,31 @@ app.get('/', (req, res) => {
 });
 
 const proxyLog = [];
+const mediaDiagnostics = [];
+function safeMediaTarget(rawUrl) {
+  try {
+    const parsed = new URL(String(rawUrl || ''));
+    return { host: parsed.host, path: parsed.pathname };
+  } catch (_) {
+    return { host: '', path: '' };
+  }
+}
+function recordMediaDiagnostic(entry) {
+  const item = { time: new Date().toISOString(), ...entry };
+  mediaDiagnostics.unshift(item);
+  if (mediaDiagnostics.length > 200) mediaDiagnostics.length = 200;
+  console.log('[media-diagnostic]', JSON.stringify(item));
+}
+app.get('/api/admin/media-diagnostics', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Admin required' });
+  res.set('Cache-Control', 'no-store');
+  res.json({ items: mediaDiagnostics });
+});
+app.delete('/api/admin/media-diagnostics', (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Admin required' });
+  mediaDiagnostics.length = 0;
+  res.json({ ok: true });
+});
 async function proxyHandler(req, res) {
   const target = req.query.url;
   if (!target) return res.status(400).send('Missing url');
@@ -795,6 +820,13 @@ const fullPageProxyHandler = async (req, res) => {
 
     const requestedDest = String(req.headers['sec-fetch-dest'] || 'document');
     const isSubresource = /^(?:audio|empty|font|image|script|style|track|video)$/.test(requestedDest);
+    const mediaRequestStarted = Date.now();
+    const mediaTarget = safeMediaTarget(url);
+    const likelyMediaRequest = requestedDest === 'video'
+      || requestedDest === 'audio'
+      || !!req.headers.range
+      || /(?:media|video|player|playlist|get_media|master)/i.test(mediaTarget.path)
+      || /\.(?:mp4|m4v|webm|m3u8|ts|m4s|mpd|key)$/i.test(mediaTarget.path);
 
     const response = await fetch(url, {
       method: req.method === 'POST' ? 'POST' : 'GET',
@@ -826,6 +858,21 @@ const fullPageProxyHandler = async (req, res) => {
     // re-route through /go so the iframe never loads the real domain raw.
     if (response.status >= 300 && response.status < 400) {
       const loc = response.headers.get('location');
+      if (likelyMediaRequest) {
+        const redirectTarget = safeMediaTarget(loc ? new URL(loc, url).href : '');
+        recordMediaDiagnostic({
+          route: 'go',
+          stage: 'redirect',
+          destination: requestedDest,
+          host: mediaTarget.host,
+          path: mediaTarget.path,
+          status: response.status,
+          redirectHost: redirectTarget.host,
+          redirectPath: redirectTarget.path,
+          requestedRange: String(req.headers.range || ''),
+          elapsedMs: Date.now() - mediaRequestStarted,
+        });
+      }
       if (loc) {
         try {
           const redirectUrl = new URL(loc, url).href;
@@ -843,6 +890,25 @@ const fullPageProxyHandler = async (req, res) => {
 
     res.status(response.status);
     const contentType = response.headers.get('content-type') || 'text/html';
+    if (likelyMediaRequest) {
+      let refererHost = '';
+      try { refererHost = upstreamReferer ? new URL(upstreamReferer).host : ''; } catch (_) {}
+      recordMediaDiagnostic({
+        route: 'go',
+        stage: 'response',
+        destination: requestedDest,
+        host: mediaTarget.host,
+        path: mediaTarget.path,
+        status: response.status,
+        contentType,
+        requestedRange: String(req.headers.range || ''),
+        contentRange: String(response.headers.get('content-range') || ''),
+        acceptRanges: String(response.headers.get('accept-ranges') || ''),
+        contentLength: String(response.headers.get('content-length') || ''),
+        refererHost,
+        elapsedMs: Date.now() - mediaRequestStarted,
+      });
+    }
 
     // Strip upstream headers that block iframe embedding
     response.headers.delete('x-frame-options');
