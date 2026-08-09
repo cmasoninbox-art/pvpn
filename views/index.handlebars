@@ -704,11 +704,16 @@
       if (inputEl) { inputEl.disabled = false; inputEl.placeholder = 'Enter website or search...'; }
       removeBrowserGate();
       const browserFrame = document.getElementById('frame');
-      if (browserFrame && !browserFrame.getAttribute('src')) {
-        const countryEl = document.getElementById('country');
-        const country = countryEl ? (countryEl.value || 'us') : 'us';
-        browserFrame.src = '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') +
-          '&country=' + encodeURIComponent(country) + '&premium=1';
+      if (browserFrame) {
+        const currentSrc = browserFrame.getAttribute('src') || '';
+        if (currentSrc.includes('premium=0')) {
+          browserFrame.src = currentSrc.replace('premium=0', 'premium=1');
+        } else if (!currentSrc) {
+          const countryEl = document.getElementById('country');
+          const country = countryEl ? (countryEl.value || 'us') : 'us';
+          browserFrame.src = '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') +
+            '&country=' + encodeURIComponent(country) + '&premium=1';
+        }
         const displayEl = document.getElementById('displayUrl');
         if (displayEl) displayEl.textContent = 'pornhub.com';
       }
