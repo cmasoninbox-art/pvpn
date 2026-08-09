@@ -294,8 +294,8 @@ try { vpnMgr.warmup(['us', ...COUNTRIES.map(c => c.code)]); } catch (_) {}
 
 const AD_SLOTS = {
   top: '<a href="/donate" rel="noopener"><img class="top-banner" src="/images/bannerpvpn.png" alt="Support PVPN" /></a>',
-  left: `<a class="house-ad house-ad-side" href="/premium" aria-label="Advertisement: Upgrade to PVPN Premium"><span class="house-ad-kicker">Advertisement</span><span class="house-ad-icon">👑</span><strong>Premium Palace</strong><span>Unlock every PVPN feature</span><b>Upgrade now →</b></a>`,
-  right: `<a class="house-ad house-ad-side" href="/shop" aria-label="Advertisement: Visit the PVPN shop"><span class="house-ad-kicker">Advertisement</span><span class="house-ad-icon">🧦</span><strong>PVPN Shop</strong><span>Plans, passes and gear</span><b>Shop now →</b></a>`,
+  left: `<a class="house-ad house-ad-side ad-slurm" href="/shop" aria-label="Unofficial PVPN concept advertisement: Slurm-inspired futuristic soda"><span class="house-ad-kicker">Unofficial PVPN concept</span><span class="drink-orbit">PVPN</span><span class="house-ad-icon">🥤</span><strong>SLURM // PVPN</strong><span class="drink-tag">Futuristic privacy soda</span><span>Electric orange flavour. Zero trackers. Maximum refreshment.</span><b>Taste the future →</b><small>Fan-style concept · No brand affiliation</small></a>`,
+  right: `<a class="house-ad house-ad-side ad-gatorade" href="/shop" aria-label="Unofficial PVPN concept advertisement: Gatorade-inspired sports drink"><span class="house-ad-kicker">Unofficial PVPN concept</span><span class="drink-bolt">⚡</span><span class="house-ad-icon">🧃</span><strong>PVPN FUEL</strong><span class="drink-tag">Gatorade-inspired hydration</span><span>Orange charge for long browsing sessions. Refresh. Reload. Repeat.</span><b>Power up →</b><small>Concept creative · Not sponsored by Gatorade</small></a>`,
   bottom: `<a class="house-ad house-ad-bottom" href="/donate" aria-label="Advertisement: Support PVPN"><span class="house-ad-kicker">Advertisement</span><span class="house-ad-icon">🧡</span><span><strong>Keep PVPN running</strong><small>Support hosting, privacy tools and new features.</small></span><b>Support PVPN →</b></a>`,
 };
 
