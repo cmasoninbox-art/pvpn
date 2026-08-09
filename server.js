@@ -3,6 +3,7 @@ const exphbs = require('express-handlebars');
 const fetch = require('node-fetch');
 const path = require('path');
 const fs = require('fs');
+const archiver = require('archiver');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const vpnMgr = require('./vpn-manager');
 
@@ -2101,19 +2102,23 @@ app.get('/uv/sw.js', (req, res) => {
   ].join('\n'));
 });
 
-app.get('/extension/:browser', (req, res) => {
+app.get('/extension/:browser', (req, res, next) => {
   const browser = req.params.browser;
-  if (browser === 'chrome') {
-    res.download('public/vpn-browser-extension.xpi', 'vpn-browser-extension.xpi', (err) => {
-      if (err && !res.headersSent) res.status(404).send('Extension not available');
-    });
-  } else if (browser === 'edge' || browser === 'firefox') {
-    res.download('public/vpn-browser-extension.zip', 'vpn-browser-extension.zip', (err) => {
-      if (err && !res.headersSent) res.status(404).send('Extension not available');
-    });
-  } else {
-    res.status(404).send('Not found');
+  if (!['chrome', 'edge', 'firefox'].includes(browser)) {
+    return res.status(404).send('Not found');
   }
+  const sourceBrowser = browser === 'firefox' ? 'firefox' : 'chrome';
+  const sourceDir = path.join(__dirname, 'extension', sourceBrowser);
+  const filename = browser === 'firefox'
+    ? 'pvpn-firefox-extension-v1.1.0.xpi'
+    : 'pvpn-' + browser + '-extension-v1.1.0.zip';
+
+  res.attachment(filename);
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  archive.on('error', next);
+  archive.pipe(res);
+  archive.directory(sourceDir, false);
+  archive.finalize();
 });
 
 async function startApplication() {
