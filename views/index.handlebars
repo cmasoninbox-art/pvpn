@@ -463,10 +463,11 @@
             
             if (frame && fallback) {
               setTimeout(() => {
+                if ((document.documentElement.dataset.proxyMode || '').startsWith('extension-')) return;
                 if (frame.contentWindow && frame.contentWindow.document) {
                   try {
                     const title = frame.contentWindow.document.title || '';
-                    if (title.toLowerCase().includes('blocked') || title.toLowerCase().includes('refused') || !(frame.src.includes('/service/') || frame.src.includes('/proxy?url=') || frame.src.includes('/go?url=') || document.documentElement.getAttribute('data-pvpn-extension') === 'ready')) {
+                    if (title.toLowerCase().includes('blocked') || title.toLowerCase().includes('refused') || !(frame.src.includes('/service/') || frame.src.includes('/proxy?url=') || frame.src.includes('/go?url=') || (document.documentElement.dataset.proxyMode || '').startsWith('extension-')) {
                       showFallback();
                     }
                   } catch (e) {
@@ -695,7 +696,7 @@
     const frameWatchdog = setInterval(() => {
       const frame = document.getElementById('frame');
       if (!frame || !frame.dataset.proxyUrl) return;
-      if (document.documentElement.getAttribute('data-pvpn-extension') === 'ready') return;
+      if ((document.documentElement.dataset.proxyMode || '').startsWith('extension-')) return;
       if (frame.dataset.loading === '1') return;  // skip during active fetch
       let sameOrigin = true;
       try { void frame.contentWindow.location.href; } catch (_) { sameOrigin = false; }
@@ -925,10 +926,10 @@
       try {
         const supported = ['pornhub.com', 'xvideos.com', 'xnxx.com', 'youporn.com'];
         const host = new URL(query).hostname.toLowerCase();
-        const extensionReady = document.documentElement.getAttribute('data-pvpn-extension') === 'ready';
         const supportedHost = supported.some(domain => host === domain || host.endsWith('.' + domain));
-        if (extensionReady && supportedHost) {
-          document.documentElement.dataset.proxyMode = 'extension-direct';
+        if (supportedHost) {
+          const detected = document.documentElement.getAttribute('data-pvpn-extension') === 'ready';
+          document.documentElement.dataset.proxyMode = detected ? 'extension-direct' : 'extension-required';
           return query;
         }
       } catch (_) {}
@@ -1298,7 +1299,6 @@
       const choice = getChoice();
       if (choice === 'yes') {
         unlock();
-        alert('Have fun legend');
       } else if (choice === 'no') {
         showMessage('No Entry', 'Grow up, come back later bud!');
         if (layout) layout.style.display = 'none';
@@ -1311,7 +1311,6 @@
         setChoice('yes');
         unlock();
         showBrowserGate();
-        alert('Have fun legend');
       });
       document.getElementById('ageNo').addEventListener('click', function() {
         setChoice('no');
@@ -1354,8 +1353,8 @@
   <script src="/js/loot-crate.js"></script>
 
 <!-- Extension Install Prompt -->
-<div id="extPrompt" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
-  <div style="background:#111;color:#ff7a00;padding:30px;border-radius:10px;max-width:420px;margin:20px;border:2px solid #ff7a00;position:relative;">
+<div id="extPrompt" style="display:none;position:fixed;right:18px;bottom:18px;width:min(390px,calc(100vw - 36px));z-index:1500;text-align:center;">
+  <div style="background:#111;color:#ff7a00;padding:30px;border-radius:10px;max-width:100%;margin:0;border:2px solid #ff7a00;position:relative;">
     <button onclick="closeExtPrompt()" aria-label="Close" title="Close" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#888;font-size:22px;cursor:pointer;line-height:1;padding:4px 6px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">×</button>
     <h3 style="margin:0 0 15px 0;">Install or Update the PVPN Extension</h3>
     <p style="margin:0 0 15px 0;line-height:1.4;color:#ccc;">Version 1.1.0 enables the fastest and most reliable direct browsing mode:</p>
