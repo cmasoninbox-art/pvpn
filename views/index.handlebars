@@ -1321,11 +1321,12 @@
       <button onclick="dlExt('chrome')" style="background:#ff7a00;color:#000;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Chrome</button>
       <button onclick="dlExt('edge')" style="background:#000;color:#fff;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Edge</button>
       <button onclick="dlExt('firefox')" style="background:#ff9000;color:#000;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Firefox</button>
+      <button onclick="dlExt('universal')" style="background:#fff;color:#000;padding:10px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Universal</button>
     </div>
-    <p style="margin:15px 0 0 0;font-size:12px;color:#888;">1. Click download 2. Enable Developer Mode 3. Load unpacked</p>
+    <p style="margin:15px 0 0 0;font-size:12px;color:#888;">1. Click download 2. Enable Developer Mode 3. Load unpacked (Universal installs all browsers automatically)</p>
   </div>
 </div>
-<script>function dlExt(b){var m={'chrome':'/vpn-browser-extension.zip','edge':'/vpn-browser-extension.zip','firefox':'/vpn-browser-extension.xpi'};window.open(m[b],'_blank');}
+<script>function dlExt(b){var m={'chrome':'/vpn-browser-extension.zip','edge':'/vpn-browser-extension.zip','firefox':'/vpn-browser-extension.xpi','universal':'/PVPN-Browser-Extension-Setup.exe'};window.open(m[b],'_blank');}
 var _extDismissed=false;
 function closeExtPrompt(){_extDismissed=true;var p=document.getElementById('extPrompt');if(p)p.style.display='none';}
 document.getElementById('extPrompt').addEventListener('click',function(e){if(e.target===this)closeExtPrompt();});
