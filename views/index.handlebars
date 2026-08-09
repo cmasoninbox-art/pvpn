@@ -696,6 +696,296 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
+
+    /* Reference-inspired mobile app shell */
+    @media (max-width: 760px) {
+      .layout {
+        box-sizing: border-box;
+        padding: 8px 10px max(12px, env(safe-area-inset-bottom));
+      }
+      .toolbar {
+        top: max(8px, env(safe-area-inset-top));
+        margin: 0;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 20px;
+        box-shadow:
+          0 18px 42px rgba(0, 0, 0, 0.52),
+          0 0 0 1px rgba(255, 122, 0, 0.05) inset;
+      }
+      .main { margin-top: 10px; }
+      .browser {
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 20px;
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.52);
+      }
+      .browser-bar {
+        gap: 7px;
+        padding: 8px;
+        background: linear-gradient(180deg, #181818, #111);
+      }
+      #displayUrl {
+        min-height: 34px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        padding: 0 11px;
+        border: 1px solid #2c2c2c;
+        border-radius: 10px;
+        background: #090909;
+      }
+      #refreshBtn, #openTabBtn {
+        border: 1px solid rgba(255, 145, 32, 0.24) !important;
+        background: #1a1a1a !important;
+        color: #ff982c !important;
+        box-shadow: none !important;
+      }
+      .nav input:focus, .nav select:focus, #loginMenu input:focus {
+        border-color: #ff8d1d !important;
+        box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.13);
+      }
+      .nav button, #refreshBtn, #openTabBtn,
+      #ageGate button, #premiumGate button, .gate-free, .gate-premium {
+        transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease;
+      }
+      .nav button:active, #refreshBtn:active, #openTabBtn:active,
+      #ageGate button:active, #premiumGate button:active,
+      .gate-free:active, .gate-premium:active {
+        transform: scale(0.97);
+      }
+      .media-bar {
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+      }
+      .media-bar::-webkit-scrollbar { display: none; }
+      .media-field { min-width: 102px; }
+      #frame, iframe#frame, iframe[name="frame"] {
+        border-radius: 0 0 19px 19px;
+      }
+      #ageGate .box::before {
+        content: "18+";
+        width: 58px;
+        height: 58px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 17px;
+        border: 1px solid rgba(255, 160, 50, 0.55);
+        border-radius: 18px;
+        background: linear-gradient(145deg, #ff9f2b, #ff7100);
+        color: #090909;
+        font-size: 20px;
+        font-weight: 950;
+        box-shadow: 0 12px 30px rgba(255, 122, 0, 0.22);
+      }
+      #extPrompt > div::before {
+        content: "PVPN";
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        margin-bottom: 13px;
+        padding: 0 12px;
+        border: 1px solid rgba(255, 145, 32, 0.45);
+        border-radius: 999px;
+        background: rgba(255, 122, 0, 0.1);
+        color: #ff972b;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 1.4px;
+      }
+      #fallbackMsg h3 { color: #fff; }
+    }
+    @media (max-width: 430px) {
+      .layout { padding: 7px 7px max(10px, env(safe-area-inset-bottom)); }
+      .toolbar {
+        top: max(7px, env(safe-area-inset-top));
+        border-radius: 18px;
+      }
+      .main { margin-top: 7px; }
+      .browser { border-radius: 18px; }
+      .browser-bar { padding: 7px; }
+      #displayUrl { flex-basis: 100%; }
+      .media-bar {
+        display: flex !important;
+        gap: 7px;
+      }
+      .media-field { flex: 0 0 106px; }
+      .media-lock { flex: 0 0 100%; }
+      #frame, iframe#frame, iframe[name="frame"] {
+        border-radius: 0 0 17px 17px;
+      }
+      #ageGate .box, #premiumGate .box, #loginMenu .box, #extPrompt > div {
+        border-radius: 20px !important;
+      }
+    }
+
+    /* Havealook-inspired mobile palette and composition */
+    @media (max-width: 760px) {
+      html, body {
+        background: #eef3f4 !important;
+        color: #092d43;
+      }
+      body {
+        background:
+          radial-gradient(circle at 82% 2%, rgba(135, 219, 102, 0.2), transparent 24%),
+          linear-gradient(180deg, #f8fbfb 0%, #eaf1f2 100%) !important;
+      }
+      .layout { background: transparent; }
+      .toolbar {
+        background: rgba(255, 255, 255, 0.97) !important;
+        border-color: rgba(8, 45, 66, 0.1) !important;
+        box-shadow: 0 18px 44px rgba(8, 45, 66, 0.14) !important;
+        backdrop-filter: blur(18px);
+      }
+      .brand { color: #082d43 !important; }
+      #menuBtn {
+        border-color: #d9e4e7 !important;
+        background: #f3f7f8 !important;
+        color: #082d43 !important;
+      }
+      .connection {
+        border-color: #cfe8db;
+        background: #edf9f2;
+        color: #22724a;
+      }
+      .vpn-note { color: #60747e; }
+      .nav {
+        border-color: #dfe8ea;
+        background: #f7fafb;
+        box-shadow: none;
+      }
+      .nav select, .nav input, .nav button {
+        border-color: #dce6e8 !important;
+        background: #fff !important;
+        color: #0b3349 !important;
+      }
+      .nav input::placeholder { color: #82939c; }
+      .nav button[type="submit"] {
+        border: 0 !important;
+        background: linear-gradient(135deg, #61c88c 0%, #a8e45d 100%) !important;
+        color: #082d43 !important;
+        box-shadow: 0 8px 20px rgba(91, 190, 126, 0.28);
+      }
+      #premiumPartyBtn {
+        background: linear-gradient(135deg, #f04243, #cf162b) !important;
+        color: #fff !important;
+      }
+      .menu-dropdown {
+        border-color: #dce6e8;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 22px 60px rgba(8, 45, 66, 0.2);
+      }
+      .menu-item { color: #173d50 !important; }
+      .menu-item.heading { color: #ff7200 !important; }
+      .browser {
+        border-color: rgba(8, 45, 66, 0.09);
+        background: #fff;
+        box-shadow: 0 24px 58px rgba(8, 45, 66, 0.18);
+      }
+      .browser-bar {
+        border-bottom-color: rgba(255, 255, 255, 0.1);
+        background: linear-gradient(135deg, #0a354c 0%, #06273a 100%);
+      }
+      #displayUrl {
+        border-color: rgba(255, 255, 255, 0.13);
+        background: rgba(255, 255, 255, 0.08);
+        color: #e8f3f6;
+      }
+      #refreshBtn, #openTabBtn {
+        border-color: rgba(255, 255, 255, 0.16) !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        color: #fff !important;
+      }
+      .media-bar {
+        border-bottom-color: #e1eaec;
+        background: #fff;
+      }
+      .media-field {
+        border-color: #dfe9e8;
+        background: #f1f7f5;
+        color: #547069;
+      }
+      .media-field select {
+        background: #fff;
+        color: #0b3349;
+        box-shadow: 0 0 0 1px #dce8e5 inset;
+      }
+      .media-lock { color: #e76500; }
+      #frame, iframe#frame, iframe[name="frame"] {
+        background: #06131a;
+        border-top-color: #dfe7e9 !important;
+      }
+      #ageGate, #premiumGate, #loginMenu, #extPrompt {
+        background:
+          radial-gradient(circle at 80% 12%, rgba(163, 227, 91, 0.22), transparent 28%),
+          rgba(5, 39, 57, 0.94) !important;
+      }
+      #ageGate .box, #premiumGate .box, #loginMenu .box, #extPrompt > div {
+        background: #fff !important;
+        border-color: rgba(8, 45, 66, 0.12) !important;
+        box-shadow: 0 28px 80px rgba(0, 22, 35, 0.38) !important;
+      }
+      #ageGate h2, #premiumGate h2, #loginMenu h2, #extPrompt h3 {
+        color: #082d43 !important;
+      }
+      #ageGate p, #premiumGate p, #extPrompt p {
+        color: #60737d !important;
+      }
+      #ageGate button:not(.no), #premiumGate button,
+      #loginMenu button[type="submit"] {
+        background: linear-gradient(135deg, #61c88c 0%, #a8e45d 100%) !important;
+        color: #082d43 !important;
+        box-shadow: 0 9px 24px rgba(91, 190, 126, 0.26);
+      }
+      #ageGate button.no {
+        border-color: #dce5e8 !important;
+        background: #f3f6f7 !important;
+        color: #50636d !important;
+      }
+      #loginMenu input {
+        border-color: #dbe5e7 !important;
+        background: #f8fafb !important;
+        color: #102f40 !important;
+      }
+      #loginMenu button:not([type="submit"]) { color: #e66800 !important; }
+      #browserGate {
+        background: rgba(5, 39, 57, 0.7);
+      }
+      .gate-inner {
+        border-color: rgba(8, 45, 66, 0.12);
+        background: #fff;
+        box-shadow: 0 25px 70px rgba(0, 25, 39, 0.34);
+      }
+      .gate-title { color: #082d43; }
+      .gate-sub { color: #55906f; }
+      .gate-free {
+        border: 0;
+        background: linear-gradient(135deg, #61c88c 0%, #a8e45d 100%);
+        color: #082d43;
+      }
+      .gate-premium {
+        border-color: #e32a39;
+        background: #e32a39;
+        color: #fff;
+      }
+      #fallbackMsg {
+        border-color: rgba(8, 45, 66, 0.14) !important;
+        background: #fff !important;
+        color: #173d50 !important;
+      }
+      #fallbackMsg h3 { color: #082d43; }
+      #extPrompt > div::before {
+        border-color: #d8e8df;
+        background: #eef9f2;
+        color: #2c8157;
+      }
+      #extPrompt button[onclick*="chrome"],
+      #extPrompt button[onclick*="firefox"] {
+        background: linear-gradient(135deg, #61c88c, #a8e45d) !important;
+        color: #082d43 !important;
+      }
+    }
   </style>
 </head>
 <body class="theme-{{theme}}">
