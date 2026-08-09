@@ -1521,15 +1521,18 @@
     </div>
   </div>
 
+
   <div id="loginMenu">
     <div class="box">
       <h2 id="partyTitle">Premium Party Login</h2>
+
 
       <form id="loginForm" style="display:flex; flex-direction:column; gap:10px; margin-top:12px;">
         <input id="loginUser" type="text" placeholder="Username" style="padding:8px; border-radius:3px; border:1px solid #333; background:#000; color:#fff;" />
         <input id="loginPass" type="password" placeholder="Password" style="padding:8px; border-radius:3px; border:1px solid #333; background:#000; color:#fff;" />
         <button type="submit" style="background:#ff7a00; color:#000; border:0; padding:10px; font-weight:900; text-transform:uppercase; cursor:pointer; border-radius:4px;">Enter Party</button>
       </form>
+
 
       <form id="registerForm" style="display:none; flex-direction:column; gap:10px; margin-top:12px;">
         <input id="regUser" type="text" placeholder="Username" style="padding:8px; border-radius:3px; border:1px solid #333; background:#000; color:#fff;" />
@@ -1539,7 +1542,9 @@
         <button type="submit" style="background:#ff7a00; color:#000; border:0; padding:10px; font-weight:900; text-transform:uppercase; cursor:pointer; border-radius:4px;">Create Account</button>
       </form>
 
+
       <p id="loginMsg" style="color:#ff7a00; margin-top:10px; min-height:16px;"></p>
+
 
       <button id="toggleRegister" type="button" style="margin-top:8px; background:transparent; color:#ff7a00; border:0; cursor:pointer; text-decoration:underline; font-size:13px;">No account? Register</button>
       <button id="loginClose" type="button" style="margin-top:8px; background:transparent; color:#ff7a00; border:1px solid #ff7a00; padding:6px 12px; cursor:pointer; border-radius:4px;">Close</button>
@@ -1560,6 +1565,7 @@
       </div>
       <a href="/donate"><img class="top-banner" src="{{bannerImage}}" alt="PVPN Santa banner" /></a>
     </div>
+
 
     <header class="toolbar">
       <div class="brand">
@@ -1620,8 +1626,10 @@
       <span id="vpnNote" class="vpn-note"></span>
     </header>
 
+
     <div class="main">
       <aside class="left-ads" id="ad-slot-left">{{{ads.left}}}</aside>
+
 
       <section class="browser" id="browserPanel">
         <div class="browser-bar">
@@ -1683,7 +1691,7 @@
                 if (frame.contentWindow && frame.contentWindow.document) {
                   try {
                     const title = frame.contentWindow.document.title || '';
-                    if (title.toLowerCase().includes('blocked') || title.toLowerCase().includes('refused') || !frame.src.includes('proxy?url=')) {
+                    if (title.toLowerCase().includes('blocked') || title.toLowerCase().includes('refused') || (!frame.src.includes('/proxy?url=') && !frame.src.includes('/go?url='))) {
                       showFallback();
                     }
                   } catch (e) {
@@ -1930,8 +1938,8 @@
         } else if (!currentSrc) {
           const countryEl = document.getElementById('country');
           const country = countryEl ? (countryEl.value || 'us') : 'us';
-          browserFrame.src = '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') +
-            '&country=' + encodeURIComponent(country) + '&premium=1';
+          browserFrame.src = '/go?url=' + encodeURIComponent('https://www.pornhub.com') +
+            '&embedded=1&country=' + encodeURIComponent(country) + '&premium=1';
         }
         const displayEl = document.getElementById('displayUrl');
         if (displayEl) displayEl.textContent = 'pornhub.com';
@@ -2097,7 +2105,7 @@
       const target = OFFER_URLS[key] || 'https://example.com';
       menuDropdown.classList.remove('open');
       display.textContent = target;
-      frame.src = '/proxy?url=' + encodeURIComponent(target);
+      frame.src = buildProxyUrl(target);
       setConnected();
     });
 
@@ -2141,7 +2149,7 @@
       }
       const premium = localStorage.getItem('premium') === '1';
       const country = premium ? (countrySel.value || 'us') : 'us';
-      return '/proxy?url=' + encodeURIComponent(query) + '&country=' + encodeURIComponent(country) + '&premium=' + (premium ? '1' : '0');
+      return '/go?url=' + encodeURIComponent(query) + '&embedded=1&country=' + encodeURIComponent(country) + '&premium=' + (premium ? '1' : '0');
     }
 
     function showBrowserHome() {
@@ -2198,7 +2206,7 @@
       const display = document.getElementById('displayUrl');
       let src = iframe.src;
       if (!src || src === 'about:blank' || src === window.location.href) {
-        const fallback = display.textContent && display.textContent !== 'No page loaded' ? display.textContent : '/proxy?url=' + encodeURIComponent('https://www.pornhub.com') + '&country=us&premium=0';
+        const fallback = display.textContent && display.textContent !== 'No page loaded' ? display.textContent : '/go?url=' + encodeURIComponent('https://www.pornhub.com') + '&embedded=1&country=us&premium=0';
         src = fallback.startsWith('http') ? fallback : window.location.origin + fallback;
       }
       window.open(src, '_blank');
@@ -2393,7 +2401,7 @@
             if (frame) {
               frame.style.pointerEvents = 'auto';
               const dest = b.url || 'https://www.pornhub.com';
-              frame.src = '/proxy?url=' + encodeURIComponent(dest) + '&country=us&premium=0';
+              frame.src = '/go?url=' + encodeURIComponent(dest) + '&embedded=1&country=us&premium=0';
             }
             return;
           }
