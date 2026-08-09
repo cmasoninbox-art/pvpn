@@ -298,7 +298,7 @@ button:hover { background: #e56d00; box-shadow: 0 0 12px rgba(255,122,0,0.25); }
 
 .main {
   display: grid;
-  grid-template-columns: clamp(190px, 17vw, 260px) minmax(0, 1fr) clamp(190px, 17vw, 260px);
+  grid-template-columns: clamp(152px, 13.6vw, 208px) minmax(0, 1fr) clamp(152px, 13.6vw, 208px);
   gap: 0;
   padding: 0;
   min-height: 0;
