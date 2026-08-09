@@ -466,7 +466,7 @@
                 if (frame.contentWindow && frame.contentWindow.document) {
                   try {
                     const title = frame.contentWindow.document.title || '';
-                    if (title.toLowerCase().includes('blocked') || title.toLowerCase().includes('refused') || !(frame.src.includes('/service/') || frame.src.includes('/proxy?url=') || frame.src.includes('/go?url='))) {
+                    if (title.toLowerCase().includes('blocked') || title.toLowerCase().includes('refused') || !(frame.src.includes('/service/') || frame.src.includes('/proxy?url=') || frame.src.includes('/go?url=') || document.documentElement.getAttribute('data-pvpn-extension') === 'ready')) {
                       showFallback();
                     }
                   } catch (e) {
@@ -695,6 +695,7 @@
     const frameWatchdog = setInterval(() => {
       const frame = document.getElementById('frame');
       if (!frame || !frame.dataset.proxyUrl) return;
+      if (document.documentElement.getAttribute('data-pvpn-extension') === 'ready') return;
       if (frame.dataset.loading === '1') return;  // skip during active fetch
       let sameOrigin = true;
       try { void frame.contentWindow.location.href; } catch (_) { sameOrigin = false; }
@@ -921,6 +922,17 @@
     localProxy.addEventListener('input', saveSettings);
 
     function buildProxyUrl(query) {
+      try {
+        const supported = ['pornhub.com', 'xvideos.com', 'xnxx.com', 'youporn.com'];
+        const host = new URL(query).hostname.toLowerCase();
+        const extensionReady = document.documentElement.getAttribute('data-pvpn-extension') === 'ready';
+        const supportedHost = supported.some(domain => host === domain || host.endsWith('.' + domain));
+        if (extensionReady && supportedHost) {
+          document.documentElement.dataset.proxyMode = 'extension-direct';
+          return query;
+        }
+      } catch (_) {}
+      document.documentElement.dataset.proxyMode = 'service-worker';
       return window.buildServiceWorkerProxyUrl(query);
     }
 
