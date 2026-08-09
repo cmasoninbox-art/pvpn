@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "VPN Browser Proxy Helper",
-  "version": "1.1.0",
-  "description": "Enables embedding of sites blocked by X-Frame-Options",
+  "name": "PVPN Firefox Frame Helper",
+  "version": "1.1.1",
+  "description": "Allows PVPN to embed supported sites by removing only framing response headers.",
   "browser_specific_settings": {
     "gecko": {
       "id": "vpn-proxy-helper@pvpn.onrender.com",
@@ -10,10 +10,7 @@
     }
   },
   "permissions": [
-    "webRequest",
-    "webRequestBlocking",
-    "activeTab",
-    "storage"
+    "declarativeNetRequest"
   ],
   "host_permissions": [
     "https://pvpn.onrender.com/*",
@@ -23,8 +20,7 @@
     "https://*.youporn.com/*"
   ],
   "action": {
-    "default_popup": "popup.html",
-    "default_title": "VPN Browser Proxy"
+    "default_title": "PVPN Firefox Helper"
   },
   "content_scripts": [
     {
@@ -37,9 +33,13 @@
       "run_at": "document_start"
     }
   ],
-  "background": {
-    "scripts": [
-      "background.js"
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "frame_headers",
+        "enabled": true,
+        "path": "rules.json"
+      }
     ]
   }
 }
