@@ -1206,7 +1206,10 @@
       let query = input.value.trim();
       if (!query) return;
       if (!/^https?:\/\//i.test(query)) {
-        query = 'https://www.google.com/search?q=' + encodeURIComponent(query);
+        const looksLikeDomain = /^(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?(?:[\/\?#].*)?$/i.test(query);
+        query = looksLikeDomain
+          ? 'https://' + query
+          : 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(query);
       }
       display.textContent = query;
       frame.src = buildProxyUrl(query);
