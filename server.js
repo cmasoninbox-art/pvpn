@@ -479,6 +479,21 @@ async function proxyHandler(req, res) {
 })();
 </script>
 `;
+      const proxyWrap = (raw) => {
+        let u;
+        try { u = new URL(raw); }
+        catch (_) {
+          try { u = new URL(decodeURIComponent(raw)); }
+          catch (e2) {
+            // Protocol-relative (//host/...) or still-unparseable: try with https: prepended.
+            try { u = new URL('https:' + (raw.startsWith('//') ? raw : '//' + raw)); }
+            catch (e3) { return raw; }
+          }
+        }
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return raw;
+        if (u.host === req.headers.host) return raw; // already our proxy
+        return '/proxy?url=' + encodeURIComponent(u.href);
+      };
       // Second pass: catch escaped-slash AND url-encoded URLs (Pornhub double-encodes
       // host refs as %2F%2Fwww.pornhub.com / https%3A%2F%2F...) that sit anywhere in the
       // document. These still leak the real domain once the browser decodes them.
