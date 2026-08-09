@@ -916,6 +916,20 @@ const fullPageProxyHandler = async (req, res) => {
         }
       }
 
+      // Remove only the known frame-bust block, then protect every remaining
+      // inline script while HTML attributes are rewritten. Signed player URLs
+      // must remain byte-for-byte unchanged until the real player consumes them.
+      body = body.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (m, code) => {
+        if (code && code.includes('hotlinkerredirects')) return '';
+        return m;
+      });
+      const protectedGoScripts = [];
+      body = body.replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi, (m, open, code, close) => {
+        if (!code) return m;
+        const index = protectedGoScripts.push(code) - 1;
+        return open + '/*__PVPN_GO_SCRIPT_' + index + '__*/' + close;
+      });
+
       // Forward upstream headers, strip XFO/CSP blocking headers
       response.headers.forEach((value, name) => {
         const lower = name.toLowerCase();
@@ -983,26 +997,6 @@ const fullPageProxyHandler = async (req, res) => {
         return m;
       });
 
-      // Strip Pornhub's hotlinker frame-bust script. The hotlinkerredirects
-      // code lives in a small script block near the end of the page. We must
-      // NOT use a regex that starts from the first <script> tag (the old regex
-      // consumed 998KB by matching across the entire document). Instead, match
-      // only the specific hotlinker block: a <script> whose content contains
-      // "hotlinkerredirects".
-      body = body.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (m, code) => {
-        if (code && code.includes('hotlinkerredirects')) return '';
-        return m;
-      });
-
-      // Rewrite URLs inside <script> blocks
-      body = body.replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi, (m, open, code, close) => {
-        const fixed = code.replace(/(?:https?:)?\/\/[^\s\"'`<>]+/g, (tok) => {
-          if (tok.startsWith('//')) return proxyWrap('https:' + tok);
-          return proxyWrap(tok);
-        });
-        return open + fixed + close;
-      });
-
       // Second pass: catch escaped-slash and url-encoded URLs
       const hostParts = base.host.split('.');
       const stem = hostParts.length > 1 ? hostParts[hostParts.length - 2] : hostParts[0];
@@ -1022,6 +1016,11 @@ const fullPageProxyHandler = async (req, res) => {
       // Strip meta-X-Frame-Options and CSP from HTML (Pornhub injects via <meta> tags)
       body = body.replace(/<meta\s+http-equiv=["']X-Frame-Options["'][^>]*>/gi, '');
       body = body.replace(/<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '');
+
+      // Restore the exact original player scripts after all HTML-only passes.
+      body = body.replace(/\/\*__PVPN_GO_SCRIPT_(\d+)__\*\//g, (m, index) => {
+        return protectedGoScripts[Number(index)] || '';
+      });
 
       // ── Quality enforcement (resolution/speed/subtitles) ───────
       const settings = getMediaSettings(req);
