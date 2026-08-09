@@ -293,10 +293,10 @@ const COUNTRIES = [
 try { vpnMgr.warmup(['us', ...COUNTRIES.map(c => c.code)]); } catch (_) {}
 
 const AD_SLOTS = {
-  top: '<a href="/donate" target="_blank" rel="noopener"><img class="top-banner" src="/images/bannerpvpn.png" alt="DONATE TO" /></a>',
-  bottom: '<a href="https://example.com" target="_blank" rel="noopener" style="color:#ff7a00;text-decoration:none;">Sponsored Link — Click Here</a>',
-  left: `<div class="ad-slot-inner"><img class="side-ad-img" src="/images/sidead-temp.png" alt="ad" /></div>`,
-  right: `<div class="ad-slot-inner"><img class="side-ad-img" src="/images/sidead-temp.png" alt="ad" /></div>`,
+  top: '<a href="/donate" rel="noopener"><img class="top-banner" src="/images/bannerpvpn.png" alt="Support PVPN" /></a>',
+  left: `<a class="house-ad house-ad-side" href="/premium" aria-label="Advertisement: Upgrade to PVPN Premium"><span class="house-ad-kicker">Advertisement</span><span class="house-ad-icon">👑</span><strong>Premium Palace</strong><span>Unlock every PVPN feature</span><b>Upgrade now →</b></a>`,
+  right: `<a class="house-ad house-ad-side" href="/shop" aria-label="Advertisement: Visit the PVPN shop"><span class="house-ad-kicker">Advertisement</span><span class="house-ad-icon">🧦</span><strong>PVPN Shop</strong><span>Plans, passes and gear</span><b>Shop now →</b></a>`,
+  bottom: `<a class="house-ad house-ad-bottom" href="/donate" aria-label="Advertisement: Support PVPN"><span class="house-ad-kicker">Advertisement</span><span class="house-ad-icon">🧡</span><span><strong>Keep PVPN running</strong><small>Support hosting, privacy tools and new features.</small></span><b>Support PVPN →</b></a>`,
 };
 
 app.get('/', (req, res) => {
@@ -312,7 +312,7 @@ app.get('/', (req, res) => {
     adButtonsJson: JSON.stringify(APP_CONFIG.adButtons),
     theme: APP_CONFIG.theme,
     bannerImage: APP_CONFIG.bannerImage,
-    paidAds: APP_CONFIG.ads || [],
+    paidAds: (APP_CONFIG.ads || []).filter(a => a && a.paid && a.url && !/^https?:\/\/(?:www\.)?example\.com/i.test(String(a.url))),
     siteTitle: APP_CONFIG.siteTitle,
   });
 });
