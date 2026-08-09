@@ -203,53 +203,81 @@
       return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
-    function sendMessage() {
+    const seenMessageKeys = new Set();
+    function messageKey(msg) {
+      return [msg.user || '', msg.text || '', msg.ts || ''].join('|');
+    }
+    function renderServerMessage(msg) {
+      if (!msg || !msg.text) return;
+      const key = messageKey(msg);
+      if (seenMessageKeys.has(key)) return;
+      seenMessageKeys.add(key);
+      addMessage(msg.user || 'Guest', String(msg.text), msg.tier || 'free', !!msg.hasSocks);
+    }
+    async function syncMessages() {
+      try {
+        const response = await fetch('/api/chat', { cache: 'no-store' });
+        if (!response.ok) return;
+        const messages = await response.json();
+        if (Array.isArray(messages)) messages.slice().reverse().forEach(renderServerMessage);
+      } catch (_) {}
+    }
+    async function sendMessage() {
       const text = input.value.trim();
       if (!text) return;
       const username = localStorage.getItem('chatUsername') || ('User_' + Math.random().toString(36).substr(2,4));
       localStorage.setItem('chatUsername', username);
       const { tier, hasSocks } = getUserTier();
-      addMessage(username, text, tier, hasSocks);
       input.value = '';
-      // TODO: send to server for real-time broadcast via WebSocket
+      sendBtn.disabled = true;
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user: username, text, tier, hasSocks }),
+        });
+        const data = await response.json();
+        if (response.ok && data.msg) renderServerMessage(data.msg);
+        else addMessage(username, text, tier, hasSocks);
+      } catch (_) {
+        addMessage(username, text, tier, hasSocks);
+      } finally {
+        sendBtn.disabled = false;
+        input.focus();
+      }
     }
-
     sendBtn.addEventListener('click', sendMessage);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
 
-    // ─── SYSTEM MESSAGES ───
-    addMessage(null, 'Welcome to PVPN Live Chat! Be kind. 🧡', null, false, true);
-    addMessage(null, 'Tip: Buy socks for a 🧦 badge next to your name!', null, false, true);
-
-    // ─── FAKE ACTIVITY (demo) ───
-    const demoUsers = [
-      { name: 'Anon_42', tier: 'monthly', socks: true },
-      { name: 'SocksFan', tier: 'lifetime', socks: true },
-      { name: 'FreeUser', tier: 'free', socks: false },
-      { name: 'JessieFan', tier: 'jessie', socks: true },
-      { name: 'BrowserPro', tier: 'quarterly', socks: false },
+    // Randomised, clearly-labelled community prompts make each visit feel fresh.
+    const welcomeMessages = [
+      'Welcome to PVPN Community Chat! Be kind. 🧡',
+      'Welcome in — your privacy settings stay active while you chat.',
+      'Community chat is open. Never share passwords or payment details.',
+      'Fresh session, fresh chat. Say hello 👋',
     ];
-    const demoMessages = [
-      'this proxy is fire 🔥', 'anyone else having lag?', 'just bought the socks lol',
-      'lifetime was worth it', 'how do I change country?', 'the jessie sock is legendary',
-      'free tier is actually decent', 'can we get dark mode?', 'best vpn browser ever',
-      'just joined, what did I miss?', 'the quarterly plan saves money', 'GG',
+    const communityPrompts = [
+      'PVPN Bot: Which browser are you using today?',
+      'PVPN Bot: Tip — use the Home button to switch between featured sites.',
+      'PVPN Bot: Free accounts stream at 480p; Premium unlocks higher quality.',
+      'PVPN Bot: Remember to keep personal information out of public chat.',
+      'PVPN Bot: The browser extension is optional when the built-in proxy works.',
+      'PVPN Bot: What country should we add next?',
+      'PVPN Bot: You can drag and resize this chat window.',
+      'PVPN Bot: Found a loading problem? Mention the site and device.',
+      'PVPN Bot: The orange theme wins every time. 🧡',
+      'PVPN Bot: Use End Session when you are finished on a shared device.',
     ];
-    let demoIdx = 0;
-    function addDemoMessage() {
-      const u = demoUsers[demoIdx % demoUsers.length];
-      const m = demoMessages[demoIdx % demoMessages.length];
-      addMessage(u.name, m, u.tier, u.socks);
-      demoIdx++;
-    }
-    // Add initial demo messages
-    for (let i = 0; i < 3; i++) { setTimeout(addDemoMessage, 500 + i * 800); }
-    // Periodic demo messages
-    setInterval(() => {
-      if (Math.random() < 0.3) addDemoMessage();
-    }, 8000);
+    function randomItem(items) { return items[Math.floor(Math.random() * items.length)]; }
+    addMessage(null, randomItem(welcomeMessages), null, false, true);
+    const firstPrompt = randomItem(communityPrompts);
+    addMessage(null, firstPrompt, null, false, true);
+    const remainingPrompts = communityPrompts.filter(p => p !== firstPrompt);
+    setTimeout(() => addMessage(null, randomItem(remainingPrompts), null, false, true), 700 + Math.floor(Math.random() * 900));
 
-    return { addMessage, chat };
+    syncMessages();
+    setInterval(syncMessages, 5000);
+    return { addMessage, chat };    return { addMessage, chat };
   }
 
   // ─── INIT ───
