@@ -1327,8 +1327,7 @@
 </div>
 <script>function dlExt(b){var m={'chrome':'/vpn-browser-extension.zip','edge':'/vpn-browser-extension.zip','firefox':'/vpn-browser-extension.xpi'};window.open(m[b],'_blank');}
 var _extDismissed=false;
-function closeExtPrompt(){_extDismissed=true;try{sessionStorage.setItem('extPromptDismissed','1');}catch(e){}var p=document.getElementById('extPrompt');if(p)p.style.display='none';}
-try{if(sessionStorage.getItem('extPromptDismissed')==='1')_extDismissed=true;}catch(e){}
+function closeExtPrompt(){_extDismissed=true;var p=document.getElementById('extPrompt');if(p)p.style.display='none';}
 document.getElementById('extPrompt').addEventListener('click',function(e){if(e.target===this)closeExtPrompt();});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeExtPrompt();});
 setTimeout(function(){var p=document.getElementById('extPrompt');if(p&&!_extDismissed)p.style.display='flex';},2000);</script>
